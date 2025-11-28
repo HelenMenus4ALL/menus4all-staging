@@ -193,7 +193,7 @@
                            name="heroImage" 
                            accept="image/jpeg,image/png,image/webp"
                            aria-describedby="hero-image-help">
-                    <span id="hero-image-help" class="help-text">Upload restaurant hero image (JPG, PNG, WEBP)</span>
+                    <span id="hero-image-help" class="help-text">Upload restaurant hero image (JPG only)</span>
                     <div id="hero-image-preview" class="image-preview" hidden></div>
                 </div>
                 
@@ -202,8 +202,8 @@
                     <input type="text" 
                            id="hero-image-path" 
                            name="heroImagePath" 
-                           placeholder="/images/memphis/restaurant-name.jpg">
-                    <span class="help-text">Example: /images/memphis/restaurant-name.jpg (This will be used for the website URL)</span>
+                           placeholder="https://www.menus4all.com/images/memphis/hive-2.jpg">
+                    <span class="help-text">Example: https://www.menus4all.com/images/memphis/hive-2.jpg (This will be used for the website URL)</span>
                 </div>
                 
                 <div class="form-group">
@@ -256,13 +256,6 @@
                                    name="menuType" 
                                    value="pdf">
                             <label for="menu-type-3">PDF Document</label>
-                        </div>
-                        <div class="radio-item">
-                            <input type="radio" 
-                                   id="menu-type-4" 
-                                   name="menuType" 
-                                   value="mixed">
-                            <label for="menu-type-4">Mixed (Web + PDF)</label>
                         </div>
                     </div>
                     <span class="error-message" role="alert"></span>
@@ -379,7 +372,11 @@
                         </div>
                         <div class="checkbox-item">
                             <input type="checkbox" id="cuisine-cafe" name="cuisineTypes" value="Cafe/Bakery">
-                            <label for="cuisine-cafe">Cafe/Bakery</label>
+                            <label for="cuisine-cafe">Cafe</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-cafe" name="cuisineTypes" value="Cafe/Bakery">
+                            <label for="cuisine-cafe">Bakery</label>
                         </div>
                     </div>
                 </fieldset>
@@ -500,7 +497,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="requested-by" class="required">Requested By</label>
+                    <label for="requested-by">Requested By</label>
                     <input type="text" 
                            id="requested-by" 
                            name="requestedBy" 
@@ -524,6 +521,7 @@
                 </a>
             </div>
         </form>
+<a href="index.html">Dashboard</a>
     </main>
     
     <!-- Footer -->
