@@ -3,6 +3,8 @@
  * Connects to TWO Firebase projects:
  * 1. Staging Database (menus4all-staging) - for drafts, review, workflow
  * 2. Production Database (menus4allbeta) - for live menus on your website
+ * 
+ * Production path structure: state/city/restaurant-name
  */
 
 // STAGING Firebase Configuration (for workflow)
@@ -59,6 +61,17 @@ function removeUndefinedValues(obj) {
         }
     });
     return cleaned;
+}
+
+/**
+ * Generate URL-safe slug from text
+ */
+function generateSlug(text) {
+    if (!text) return '';
+    return text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
 }
 
 /**
@@ -131,7 +144,7 @@ async function updateMenuStatus(menuId, status, reviewNotes = null) {
 
 /**
  * Push menu to PRODUCTION database (Menus4ALLBeta)
- * This makes the menu live on your website
+ * Uses path structure: state/city/restaurant-name
  */
 async function pushMenuToProduction(menuId) {
     try {
@@ -140,6 +153,17 @@ async function pushMenuToProduction(menuId) {
         
         if (!stagingMenu) {
             throw new Error('Menu not found in staging');
+        }
+        
+        // Validate required fields for production path
+        if (!stagingMenu.state) {
+            throw new Error('State is required to push to production');
+        }
+        if (!stagingMenu.city) {
+            throw new Error('City is required to push to production');
+        }
+        if (!stagingMenu.restaurantName) {
+            throw new Error('Restaurant name is required to push to production');
         }
         
         // Prepare production data (remove staging-specific fields and undefined values)
@@ -177,40 +201,34 @@ async function pushMenuToProduction(menuId) {
         // Remove undefined/null/empty values
         const productionData = removeUndefinedValues(productionDataRaw);
         
-        // Generate production menu ID (lowercase restaurant name with dashes)
-        const productionMenuId = generateProductionMenuId(stagingMenu.restaurantName);
+        // Generate production path: state/city/restaurant-name
+        const stateSlug = generateSlug(stagingMenu.state);
+        const citySlug = generateSlug(stagingMenu.city);
+        const restaurantSlug = generateSlug(stagingMenu.restaurantName);
+        const productionPath = `${stateSlug}/${citySlug}/${restaurantSlug}`;
         
-        console.log('Pushing to production:', productionMenuId, productionData);
+        console.log('Pushing to production path:', productionPath);
+        console.log('Production data:', productionData);
         
-        // Save to PRODUCTION database (Menus4ALLBeta)
-        await productionDb.child(`menus/${productionMenuId}`).set(productionData);
+        // Save to PRODUCTION database at state/city/restaurant-name
+        await productionDb.child(productionPath).set(productionData);
         
         // Update staging menu status and add production reference
         const nextUpdateDue = Date.now() + (90 * 24 * 60 * 60 * 1000); // 90 days
         await stagingDb.child(`staging-menus/${menuId}`).update({
             status: MenuStatus.LIVE,
             liveDate: Date.now(),
-            productionMenuId: productionMenuId,
+            productionPath: productionPath,
             nextUpdateDue: nextUpdateDue,
             lastUpdated: Date.now()
         });
         
-        console.log('Successfully pushed to production:', productionMenuId);
-        return productionMenuId;
+        console.log('Successfully pushed to production:', productionPath);
+        return productionPath;
     } catch (error) {
         console.error('Error pushing to production:', error);
         throw error;
     }
-}
-
-/**
- * Generate production menu ID from restaurant name
- */
-function generateProductionMenuId(restaurantName) {
-    return restaurantName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
 }
 
 /**
