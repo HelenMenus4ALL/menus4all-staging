@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "staging-menus": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$menuId": {
+        ".validate": "newData.hasChildren(['restaurantName', 'city', 'status'])"
+      }
+    },
+    "menus": {
+      ".read": true,
+      ".write": "auth != null",
+      "$menuId": {
+        ".validate": "newData.hasChildren(['restaurantName', 'city'])"
+      }
+    }
+  }
+}
