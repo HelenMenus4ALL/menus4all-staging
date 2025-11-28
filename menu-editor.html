@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Menus4ALL Menu Editor - Create and edit accessible restaurant menus">
+    <title>Menu Editor - Menus4ALL</title>
+    
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/menu-editor.css">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+    <!-- Skip Link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <!-- Header -->
+    <header role="banner">
+        <div class="header-container">
+            <h1>
+                <img src="https://www.moderntechnology4theblind.org/wp-content/uploads/2024/10/cropped-Menus4All-TransparentSQlogo-192x192.png" 
+                     alt="Menus4ALL logo" 
+                     class="logo">
+                Menu Editor
+            </h1>
+            <nav aria-label="Breadcrumb">
+                <ol class="breadcrumb">
+                    <li><a href="index.html">Dashboard</a></li>
+                    <li aria-current="page">Menu Editor</li>
+                </ol>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" role="main">
+        <!-- Auto-save Status -->
+        <div class="save-status" role="status" aria-live="polite" aria-atomic="true">
+            <span id="save-status-text">Ready to edit</span>
+        </div>
+        
+        <!-- Form -->
+        <form id="menu-form" class="menu-form" novalidate>
+            <input type="hidden" id="menu-id" name="menuId">
+            
+            <!-- Section 1: Basic Information -->
+            <section class="form-section">
+                <h2>Basic Information</h2>
+                
+                <div class="form-group">
+                    <label for="restaurant-name" class="required">Restaurant Name</label>
+                    <input type="text" 
+                           id="restaurant-name" 
+                           name="restaurantName" 
+                           required 
+                           aria-required="true"
+                           autocomplete="organization">
+                    <span class="error-message" role="alert"></span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address" class="required">Address</label>
+                    <input type="text" 
+                           id="address" 
+                           name="address" 
+                           required 
+                           aria-required="true"
+                           autocomplete="street-address">
+                    <span class="error-message" role="alert"></span>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="city" class="required">City</label>
+                        <input type="text" 
+                               id="city" 
+                               name="city" 
+                               required 
+                               aria-required="true"
+                               autocomplete="address-level2">
+                        <span class="error-message" role="alert"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="state" class="required">State</label>
+                        <input type="text" 
+                               id="state" 
+                               name="state" 
+                               required 
+                               aria-required="true"
+                               autocomplete="address-level1"
+                               placeholder="e.g., TN">
+                        <span class="error-message" role="alert"></span>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="latitude" class="required">Latitude</label>
+                        <input type="text" 
+                               id="latitude" 
+                               name="latitude" 
+                               required 
+                               aria-required="true"
+                               placeholder="35.1495"
+                               pattern="^-?([0-9]{1,2}|1[0-7][0-9]|180)(\.[0-9]{1,10})?$">
+                        <span class="help-text">Decimal format (e.g., 35.1495)</span>
+                        <span class="error-message" role="alert"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="longitude" class="required">Longitude</label>
+                        <input type="text" 
+                               id="longitude" 
+                               name="longitude" 
+                               required 
+                               aria-required="true"
+                               placeholder="-90.0490"
+                               pattern="^-?([0-9]{1,2}|1[0-7][0-9]|180)(\.[0-9]{1,10})?$">
+                        <span class="help-text">Decimal format (e.g., -90.0490)</span>
+                        <span class="error-message" role="alert"></span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" 
+                           id="phone" 
+                           name="phoneNumber" 
+                           autocomplete="tel"
+                           placeholder="(555) 555-5555">
+                    <span class="help-text">Format: (555) 555-5555</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="hours">Hours</label>
+                    <textarea id="hours" 
+                              name="hours" 
+                              rows="4"
+                              placeholder="Mon-Fri: 11am-10pm&#10;Sat-Sun: 10am-11pm"></textarea>
+                    <span class="help-text">Operating hours - one line per day or special notes</span>
+                </div>
+            </section>
+            
+            <!-- Section 2: Pricing & Images -->
+            <section class="form-section">
+                <h2>Pricing & Images</h2>
+                
+                <fieldset class="form-group">
+                    <legend class="required">Average Meal Price</legend>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="price-1" 
+                                   name="averageMealPrice" 
+                                   value="$" 
+                                   required>
+                            <label for="price-1">$ (Under $10 per person)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="price-2" 
+                                   name="averageMealPrice" 
+                                   value="$$">
+                            <label for="price-2">$$ ($11-$30 per person)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="price-3" 
+                                   name="averageMealPrice" 
+                                   value="$$$">
+                            <label for="price-3">$$$ ($31-$60 per person)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="price-4" 
+                                   name="averageMealPrice" 
+                                   value="$$$$">
+                            <label for="price-4">$$$$ (Over $60 per person)</label>
+                        </div>
+                    </div>
+                    <span class="error-message" role="alert"></span>
+                </fieldset>
+                
+                <div class="form-group">
+                    <label for="hero-image">Hero Image</label>
+                    <input type="file" 
+                           id="hero-image" 
+                           name="heroImage" 
+                           accept="image/jpeg,image/png,image/webp"
+                           aria-describedby="hero-image-help">
+                    <span id="hero-image-help" class="help-text">Upload restaurant hero image (JPG, PNG, WEBP)</span>
+                    <div id="hero-image-preview" class="image-preview" hidden></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="hero-image-path">Hero Image Path/Filename</label>
+                    <input type="text" 
+                           id="hero-image-path" 
+                           name="heroImagePath" 
+                           placeholder="/images/memphis/restaurant-name.jpg">
+                    <span class="help-text">Example: /images/memphis/restaurant-name.jpg (This will be used for the website URL)</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="hero-image-caption">Hero Image Caption</label>
+                    <textarea id="hero-image-caption" 
+                              name="heroImageCaption" 
+                              rows="2"
+                              placeholder="Restaurant Name exterior showing..."></textarea>
+                    <span class="help-text">Alt text description for accessibility (start with restaurant name)</span>
+                </div>
+            </section>
+            
+            <!-- Section 3: Menu Information -->
+            <section class="form-section">
+                <h2>Menu Information</h2>
+                
+                <div class="form-group">
+                    <label for="website-urls" class="required">Website URL(s) for Menu</label>
+                    <textarea id="website-urls" 
+                              name="websiteURLs" 
+                              rows="4" 
+                              required 
+                              aria-required="true"
+                              placeholder="https://restaurant.com/menu&#10;https://restaurant.com/menu2"></textarea>
+                    <span class="help-text">Enter all menu URLs - one per line. Note if PDF, multiple tabs, etc.</span>
+                    <span class="error-message" role="alert"></span>
+                </div>
+                
+                <fieldset class="form-group">
+                    <legend class="required">Menu Type</legend>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="menu-type-1" 
+                                   name="menuType" 
+                                   value="single-web" 
+                                   required>
+                            <label for="menu-type-1">Single Web Page</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="menu-type-2" 
+                                   name="menuType" 
+                                   value="multiple-web">
+                            <label for="menu-type-2">Multiple Web Pages/Tabs</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="menu-type-3" 
+                                   name="menuType" 
+                                   value="pdf">
+                            <label for="menu-type-3">PDF Document</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="menu-type-4" 
+                                   name="menuType" 
+                                   value="mixed">
+                            <label for="menu-type-4">Mixed (Web + PDF)</label>
+                        </div>
+                    </div>
+                    <span class="error-message" role="alert"></span>
+                </fieldset>
+                
+                <fieldset class="form-group">
+                    <legend>General Menu Notes</legend>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" 
+                                   id="note-a" 
+                                   name="generalMenuNotes" 
+                                   value="note-a">
+                            <label for="note-a">A. Prices may be lower as only online ordering pricing was available when this menu was converted to A11y format. Ask waiter to confirm pricing.</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" 
+                                   id="note-b" 
+                                   name="generalMenuNotes" 
+                                   value="note-b">
+                            <label for="note-b">B. We apologize, the food item text for this menu is truncated as this is how the core menu displays {RESTAURANT} site.</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" 
+                                   id="note-c" 
+                                   name="generalMenuNotes" 
+                                   value="note-c">
+                            <label for="note-c">C. We apologize, no prices were posted online for when this menu was converted to A11y format. Ask your waiter for pricing.</label>
+                        </div>
+                    </div>
+                </fieldset>
+                
+                <div class="form-group">
+                    <label for="menu-notes-additional">General Menu Notes - Additional</label>
+                    <input type="text" 
+                           id="menu-notes-additional" 
+                           name="menuNotesAdditional" 
+                           placeholder="Any additional menu notes...">
+                    <span class="help-text">Any additional menu notes not covered above</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="disclaimer">Disclaimer</label>
+                    <textarea id="disclaimer" 
+                              name="disclaimer" 
+                              rows="3"
+                              placeholder="Special disclaimers or legal notices..."></textarea>
+                    <span class="help-text">Special disclaimers or legal notices from the restaurant</span>
+                </div>
+            </section>
+            
+            <!-- Section 4: Categories & Dietary -->
+            <section class="form-section">
+                <h2>Categories & Dietary Options</h2>
+                
+                <fieldset class="form-group">
+                    <legend>Cuisine Type</legend>
+                    <div class="checkbox-group multi-column">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-american" name="cuisineTypes" value="American">
+                            <label for="cuisine-american">American</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-italian" name="cuisineTypes" value="Italian">
+                            <label for="cuisine-italian">Italian</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-mexican" name="cuisineTypes" value="Mexican">
+                            <label for="cuisine-mexican">Mexican</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-chinese" name="cuisineTypes" value="Chinese">
+                            <label for="cuisine-chinese">Chinese</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-japanese" name="cuisineTypes" value="Japanese">
+                            <label for="cuisine-japanese">Japanese</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-thai" name="cuisineTypes" value="Thai">
+                            <label for="cuisine-thai">Thai</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-indian" name="cuisineTypes" value="Indian">
+                            <label for="cuisine-indian">Indian</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-mediterranean" name="cuisineTypes" value="Mediterranean">
+                            <label for="cuisine-mediterranean">Mediterranean</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-french" name="cuisineTypes" value="French">
+                            <label for="cuisine-french">French</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-greek" name="cuisineTypes" value="Greek">
+                            <label for="cuisine-greek">Greek</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-bbq" name="cuisineTypes" value="BBQ/Steakhouse">
+                            <label for="cuisine-bbq">BBQ/Steakhouse</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-seafood" name="cuisineTypes" value="Seafood">
+                            <label for="cuisine-seafood">Seafood</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-vegetarian" name="cuisineTypes" value="Vegetarian/Vegan">
+                            <label for="cuisine-vegetarian">Vegetarian/Vegan</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-fast-food" name="cuisineTypes" value="Fast Food">
+                            <label for="cuisine-fast-food">Fast Food</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-cafe" name="cuisineTypes" value="Cafe/Bakery">
+                            <label for="cuisine-cafe">Cafe/Bakery</label>
+                        </div>
+                    </div>
+                </fieldset>
+                
+                <div class="form-group">
+                    <label for="cuisine-other">Cuisine Type - Other</label>
+                    <input type="text" 
+                           id="cuisine-other" 
+                           name="cuisineOther" 
+                           placeholder="If you selected 'Other' above, specify here">
+                </div>
+                
+                <fieldset class="form-group">
+                    <legend>Dietary Options Available</legend>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-vegan" name="dietaryOptions" value="Vegan">
+                            <label for="diet-vegan">Vegan</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-gluten" name="dietaryOptions" value="Gluten Free">
+                            <label for="diet-gluten">Gluten Free</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-dairy" name="dietaryOptions" value="Dairy Free">
+                            <label for="diet-dairy">Dairy Free</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-kosher" name="dietaryOptions" value="Kosher">
+                            <label for="diet-kosher">Kosher</label>
+                        </div>
+                    </div>
+                </fieldset>
+            </section>
+            
+            <!-- Section 5: Technical Details -->
+            <section class="form-section">
+                <h2>Technical Details</h2>
+                
+                <div class="form-group">
+                    <label for="technical-notes">Technical Menu Scanning Notes</label>
+                    <textarea id="technical-notes" 
+                              name="technicalNotes" 
+                              rows="4"
+                              placeholder="Technical notes about menu structure, formatting issues, special characters, etc."></textarea>
+                    <span class="help-text">Technical notes about menu structure, formatting issues, special characters, etc.</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="section-details">Section Extra Details</label>
+                    <textarea id="section-details" 
+                              name="sectionDetails" 
+                              rows="4"
+                              placeholder="Details about menu sections, categories, special organization notes"></textarea>
+                    <span class="help-text">Details about menu sections, categories, special organization notes</span>
+                </div>
+            </section>
+            
+            <!-- Section 6: File Uploads & Metadata -->
+            <section class="form-section">
+                <h2>File Uploads & Metadata</h2>
+                
+                <div class="form-group">
+                    <label for="csv-upload">CSV File Upload</label>
+                    <input type="file" 
+                           id="csv-upload" 
+                           name="csvFile" 
+                           accept=".csv"
+                           aria-describedby="csv-help">
+                    <span id="csv-help" class="help-text">Upload the menu CSV file if available</span>
+                    <div id="csv-preview" class="file-preview" hidden></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="json-upload">JSON File Upload</label>
+                    <input type="file" 
+                           id="json-upload" 
+                           name="jsonFile" 
+                           accept=".json"
+                           aria-describedby="json-help">
+                    <span id="json-help" class="help-text">Upload the menu JSON file if already created (optional - will be auto-generated from CSV)</span>
+                    <div id="json-preview" class="file-preview" hidden></div>
+                </div>
+                
+                <fieldset class="form-group">
+                    <legend class="required">Status</legend>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="status-draft" 
+                                   name="status" 
+                                   value="draft" 
+                                   required 
+                                   checked>
+                            <label for="status-draft">Draft (Minimum info - to complete later)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="status-progress" 
+                                   name="status" 
+                                   value="in-progress">
+                            <label for="status-progress">In Progress (Being worked on)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="status-ready" 
+                                   name="status" 
+                                   value="ready-for-review">
+                            <label for="status-ready">Ready for Review</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="status-complete" 
+                                   name="status" 
+                                   value="complete">
+                            <label for="status-complete">Complete</label>
+                        </div>
+                    </div>
+                    <span class="error-message" role="alert"></span>
+                </fieldset>
+                
+                <div class="form-group">
+                    <label for="assigned-to">Assigned To</label>
+                    <input type="text" 
+                           id="assigned-to" 
+                           name="assignedTo" 
+                           placeholder="Your name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="requested-by" class="required">Requested By</label>
+                    <input type="text" 
+                           id="requested-by" 
+                           name="requestedBy" 
+                           required 
+                           aria-required="true"
+                           placeholder="Your name or who requested this menu conversion">
+                    <span class="error-message" role="alert"></span>
+                </div>
+            </section>
+            
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="save-btn">
+                    Save Menu
+                </button>
+                <button type="button" class="btn btn-secondary" id="save-draft-btn">
+                    Save as Draft
+                </button>
+                <a href="index.html" class="btn btn-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </main>
+    
+    <!-- Footer -->
+    <footer role="contentinfo">
+        <p>
+            <a href="https://www.moderntechnology4theblind.org">Modern Technology for the Blind</a> | 
+            Menus4ALL &copy; 2024
+        </p>
+    </footer>
+    
+    <!-- Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/menu-editor.js"></script>
+</body>
+</html>
