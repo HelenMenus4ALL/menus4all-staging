@@ -1,6 +1,7 @@
 /**
  * Menu Editor JavaScript
  * Handles form validation, auto-save, and menu creation/editing
+ * JSON is AUTO-GENERATED from CSV - no manual JSON upload
  */
 
 // State
@@ -218,13 +219,24 @@ async function saveMenu(isDraft) {
         
         const formData = getFormData();
         
-        // Handle file uploads
-        if (document.getElementById('hero-image').files[0]) {
-            const heroImageURL = await uploadHeroImage(
-                document.getElementById('hero-image').files[0],
-                currentMenuId || generateMenuId()
-            );
+        // Handle hero image upload
+        const heroImageFile = document.getElementById('hero-image').files[0];
+        if (heroImageFile) {
+            const menuIdForUpload = currentMenuId || generateMenuId();
+            const heroImageURL = await uploadHeroImage(heroImageFile, menuIdForUpload);
             formData.heroImageURL = heroImageURL;
+        }
+        
+        // Handle CSV upload and auto-generate JSON
+        const csvFile = document.getElementById('csv-upload').files[0];
+        if (csvFile) {
+            updateSaveStatus('Processing CSV and generating JSON...');
+            const csvText = await readFileAsText(csvFile);
+            formData.csvData = csvText;
+            
+            // Parse CSV and generate JSON
+            const menuJson = parseCSVAndGenerateJSON(csvText, formData);
+            formData.menuJson = JSON.stringify(menuJson);
         }
         
         // Create ID if new menu
@@ -251,6 +263,137 @@ async function saveMenu(isDraft) {
         saveBtn.disabled = false;
         saveDraftBtn.disabled = false;
     }
+}
+
+/**
+ * Read file as text
+ */
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file);
+    });
+}
+
+/**
+ * Parse CSV and generate JSON menu structure
+ */
+function parseCSVAndGenerateJSON(csvText, formData) {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    
+    if (lines.length === 0) {
+        return createEmptyMenuJSON(formData);
+    }
+    
+    // Parse CSV headers
+    const headers = lines[0].split(',').map(h => h.trim());
+    
+    // Parse CSV rows
+    const items = [];
+    for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        const item = {};
+        headers.forEach((header, index) => {
+            item[header] = values[index] || '';
+        });
+        items.push(item);
+    }
+    
+    // Generate menu JSON structure
+    return {
+        restaurant: {
+            name: formData.restaurantName,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            location: {
+                latitude: formData.latitude,
+                longitude: formData.longitude,
+                googleMapsLink: `https://www.google.com/maps?q=${formData.latitude},${formData.longitude}`
+            },
+            phone: formData.phoneNumber,
+            hours: formData.hours,
+            averageMealPrice: formData.averageMealPrice,
+            heroImage: formData.heroImagePath,
+            heroImageCaption: formData.heroImageCaption,
+            website: formData.websiteURLs,
+            cuisineTypes: formData.cuisineTypes,
+            dietaryOptions: formData.dietaryOptions
+        },
+        menu: {
+            items: items,
+            notes: formData.generalMenuNotes,
+            disclaimer: formData.disclaimer,
+            technicalNotes: formData.technicalNotes,
+            sectionDetails: formData.sectionDetails
+        },
+        metadata: {
+            createdDate: new Date().toISOString(),
+            requestedBy: formData.requestedBy,
+            assignedTo: formData.assignedTo,
+            status: formData.status,
+            lastUpdated: new Date().toISOString()
+        }
+    };
+}
+
+/**
+ * Parse CSV line handling quoted values
+ */
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    
+    result.push(current.trim());
+    return result;
+}
+
+/**
+ * Create empty menu JSON
+ */
+function createEmptyMenuJSON(formData) {
+    return {
+        restaurant: {
+            name: formData.restaurantName,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            location: {
+                latitude: formData.latitude,
+                longitude: formData.longitude
+            },
+            phone: formData.phoneNumber,
+            hours: formData.hours,
+            averageMealPrice: formData.averageMealPrice,
+            cuisineTypes: formData.cuisineTypes,
+            dietaryOptions: formData.dietaryOptions
+        },
+        menu: {
+            items: [],
+            notes: formData.generalMenuNotes
+        },
+        metadata: {
+            createdDate: new Date().toISOString(),
+            requestedBy: formData.requestedBy,
+            status: formData.status
+        }
+    };
 }
 
 /**
@@ -409,20 +552,8 @@ function setupFilePreview() {
     csvUpload.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            csvPreview.innerHTML = `<p>✓ ${file.name} (${(file.size / 1024).toFixed(2)} KB)</p>`;
+            csvPreview.innerHTML = `<p>✓ ${file.name} (${(file.size / 1024).toFixed(2)} KB) - JSON will be auto-generated</p>`;
             csvPreview.hidden = false;
-        }
-    });
-    
-    // JSON preview
-    const jsonUpload = document.getElementById('json-upload');
-    const jsonPreview = document.getElementById('json-preview');
-    
-    jsonUpload.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            jsonPreview.innerHTML = `<p>✓ ${file.name} (${(file.size / 1024).toFixed(2)} KB)</p>`;
-            jsonPreview.hidden = false;
         }
     });
 }
