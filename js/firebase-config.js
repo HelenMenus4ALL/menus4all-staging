@@ -49,6 +49,19 @@ const MenuStatus = {
 };
 
 /**
+ * Remove undefined values from object (Firebase doesn't accept undefined)
+ */
+function removeUndefinedValues(obj) {
+    const cleaned = {};
+    Object.keys(obj).forEach(key => {
+        if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
+            cleaned[key] = obj[key];
+        }
+    });
+    return cleaned;
+}
+
+/**
  * Get all menus from staging database
  */
 async function getAllStagingMenus() {
@@ -129,8 +142,8 @@ async function pushMenuToProduction(menuId) {
             throw new Error('Menu not found in staging');
         }
         
-        // Prepare production data (remove staging-specific fields)
-        const productionData = {
+        // Prepare production data (remove staging-specific fields and undefined values)
+        const productionDataRaw = {
             restaurantName: stagingMenu.restaurantName,
             address: stagingMenu.address,
             city: stagingMenu.city,
@@ -155,13 +168,19 @@ async function pushMenuToProduction(menuId) {
             sectionDetails: stagingMenu.sectionDetails,
             csvData: stagingMenu.csvData,
             menuJson: stagingMenu.menuJson,
+            requestedBy: stagingMenu.requestedBy,
             liveDate: Date.now(),
             stagingId: menuId,
             lastUpdated: Date.now()
         };
         
+        // Remove undefined/null/empty values
+        const productionData = removeUndefinedValues(productionDataRaw);
+        
         // Generate production menu ID (lowercase restaurant name with dashes)
         const productionMenuId = generateProductionMenuId(stagingMenu.restaurantName);
+        
+        console.log('Pushing to production:', productionMenuId, productionData);
         
         // Save to PRODUCTION database (Menus4ALLBeta)
         await productionDb.child(`menus/${productionMenuId}`).set(productionData);
@@ -176,6 +195,7 @@ async function pushMenuToProduction(menuId) {
             lastUpdated: Date.now()
         });
         
+        console.log('Successfully pushed to production:', productionMenuId);
         return productionMenuId;
     } catch (error) {
         console.error('Error pushing to production:', error);
