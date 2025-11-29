@@ -1,0 +1,185 @@
+<!-- 
+    STAGING DUAL-PATH INDEX.HTML
+    
+    This version safely reads from BOTH:
+    1. NEW structure: production/menus/usa/tennessee/memphis/restaurant-name/
+    2. OLD structure: production/menus/restaurant-id (flat)
+    
+    TESTING INSTRUCTIONS:
+    1. Deploy ONLY to helenmenus4all.github.io/menus4all-staging
+    2. Test with existing menus (should work - old structure)
+    3. Add ONE test menu to new structure
+    4. Verify both load correctly
+    5. DO NOT deploy to production until fully tested
+-->
+
+// Load restaurant data from Firebase with DUAL-PATH support
+async function loadRestaurants() {
+    try {
+        console.log('🔍 Starting restaurant load with dual-path support...');
+        
+        // FIRST: Try to load from production/menus path (new structure)
+        const newStructureRef = database.ref('/production/menus');
+        const newSnapshot = await newStructureRef.once('value');
+        const newData = newSnapshot.val();
+        
+        console.log('📁 New structure data:', newData ? 'Found' : 'Not found');
+        
+        // SECOND: Try to load from root (old/current structure  )
+        const oldStructureRef = database.ref('/');
+        const oldSnapshot = await oldStructureRef.once('value');
+        const oldData = oldSnapshot.val();
+        
+        console.log('📁 Old structure data:', oldData ? 'Found' : 'Not found');
+        
+        // Combine both sources
+        let combinedRestaurants = [];
+        
+        // Process NEW structure (country/state/city/restaurant)
+        if (newData && typeof newData === 'object') {
+            console.log('🌍 Processing new structure...');
+            
+            Object.keys(newData).forEach(country => {
+                if (country.startsWith('_')) return; // Skip metadata
+                
+                const countryData = newData[country];
+                if (typeof countryData !== 'object') return;
+                
+                Object.keys(countryData).forEach(state => {
+                    if (state.startsWith('_')) return;
+                    
+                    const stateData = countryData[state];
+                    if (typeof stateData !== 'object') return;
+                    
+                    Object.keys(stateData).forEach(city => {
+                        if (city.startsWith('_')) return;
+                        
+                        const cityData = stateData[city];
+                        if (typeof cityData !== 'object') return;
+                        
+                        Object.keys(cityData).forEach(restaurantSlug => {
+                            if (restaurantSlug.startsWith('_')) return;
+                            
+                            const restaurant = cityData[restaurantSlug];
+                            
+                            // Helper function to safely parse coordinates
+                            const parseCoord = (value) => {
+                                if (value === '' || value === null || value === undefined) return 0;
+                                const parsed = parseFloat(value);
+                                return isNaN(parsed) ? 0 : parsed;
+                            };
+                            
+                            let lat = parseCoord(restaurant.restaurantInfo?.lat) || parseCoord(restaurant.lat);
+                            let lng = parseCoord(restaurant.restaurantInfo?.lng) || parseCoord(restaurant.lng);
+                            
+                            // Fix swapped coordinates
+                            if (lat < -50 && lng > 0 && lng < 60) {
+                                console.warn(`⚠️ Swapped coordinates for ${restaurant.restaurantInfo?.name || restaurantSlug}`);
+                                const temp = lat;
+                                lat = lng;
+                                lng = temp;
+                            }
+                            
+                            combinedRestaurants.push({
+                                id: restaurantSlug,
+                                name: restaurant.restaurantInfo?.name || restaurant.name || 'Unknown Restaurant',
+                                category: restaurant.restaurantInfo?.cuisineType || restaurant.restaurantInfo?.category || restaurant.category || '',
+                                dietary: restaurant.restaurantInfo?.dietary || [],
+                                address: restaurant.restaurantInfo?.address || restaurant.address || '',
+                                city: restaurant.restaurantInfo?.city || restaurant.city || city,
+                                state: restaurant.restaurantInfo?.state || restaurant.state || state,
+                                country: country,
+                                phone: restaurant.restaurantInfo?.phone || restaurant.phone || '',
+                                averageMealPrice: restaurant.restaurantInfo?.averageMealPrice || '',
+                                heroImage: restaurant.restaurantInfo?.heroImage || '',
+                                heroImageAlt: restaurant.restaurantInfo?.heroImageAlt || '',
+                                lat: lat,
+                                lng: lng,
+                                hasCoordinates: lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng),
+                                source: 'new-structure',
+                                path: `${country}/${state}/${city}/${restaurantSlug}`
+                            });
+                            
+                            console.log(`✅ Loaded from NEW: ${restaurant.restaurantInfo?.name || restaurantSlug} (${country}/${state}/${city})`);
+                        });
+                    });
+                });
+            });
+        }
+        
+        // Process OLD structure (flat restaurant IDs)
+        if (oldData && typeof oldData === 'object') {
+            console.log('📂 Processing old structure...');
+            
+            Object.keys(oldData).forEach(key => {
+                if (key.startsWith('_') || key === 'production' || key === 'staging') return; // Skip metadata and new structure paths
+                
+                const restaurant = oldData[key];
+                if (!restaurant || typeof restaurant !== 'object') return;
+                
+                // Check if this restaurant already exists in new structure
+                const alreadyExists = combinedRestaurants.some(r => r.id === key);
+                if (alreadyExists) {
+                    console.log(`⏭️  Skipping duplicate: ${restaurant.restaurantInfo?.name || key} (already in new structure)`);
+                    return;
+                }
+                
+                const parseCoord = (value) => {
+                    if (value === '' || value === null || value === undefined) return 0;
+                    const parsed = parseFloat(value);
+                    return isNaN(parsed) ? 0 : parsed;
+                };
+                
+                let lat = parseCoord(restaurant.restaurantInfo?.lat) || parseCoord(restaurant.lat);
+                let lng = parseCoord(restaurant.restaurantInfo?.lng) || parseCoord(restaurant.lng);
+                
+                if (lat < -50 && lng > 0 && lng < 60) {
+                    const temp = lat;
+                    lat = lng;
+                    lng = temp;
+                }
+                
+                combinedRestaurants.push({
+                    id: key,
+                    name: restaurant.restaurantInfo?.name || restaurant.name || 'Unknown Restaurant',
+                    category: restaurant.restaurantInfo?.cuisineType || restaurant.restaurantInfo?.category || restaurant.category || '',
+                    dietary: restaurant.restaurantInfo?.dietary || [],
+                    address: restaurant.restaurantInfo?.address || restaurant.address || '',
+                    city: restaurant.restaurantInfo?.city || restaurant.city || '',
+                    state: restaurant.restaurantInfo?.state || restaurant.state || '',
+                    country: 'usa', // Default for old structure
+                    phone: restaurant.restaurantInfo?.phone || restaurant.phone || '',
+                    averageMealPrice: restaurant.restaurantInfo?.averageMealPrice || '',
+                    heroImage: restaurant.restaurantInfo?.heroImage || '',
+                    heroImageAlt: restaurant.restaurantInfo?.heroImageAlt || '',
+                    lat: lat,
+                    lng: lng,
+                    hasCoordinates: lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng),
+                    source: 'old-structure',
+                    path: key
+                });
+                
+                console.log(`✅ Loaded from OLD: ${restaurant.restaurantInfo?.name || key}`);
+            });
+        }
+        
+        if (combinedRestaurants.length === 0) {
+            console.log('❌ No restaurant data found in either structure');
+            document.getElementById('restaurantsList').innerHTML = '<p>No restaurants available yet.</p>';
+            return;
+        }
+        
+        allRestaurants = combinedRestaurants.filter(r => r.name && r.address);
+        
+        console.log('✅ Total restaurants loaded:', allRestaurants.length);
+        console.log('📊 From new structure:', allRestaurants.filter(r => r.source === 'new-structure').length);
+        console.log('📊 From old structure:', allRestaurants.filter(r => r.source === 'old-structure').length);
+        console.log('📍 With coordinates:', allRestaurants.filter(r => r.hasCoordinates).length);
+        
+        displayAllRestaurants();
+    } catch (error) {
+        console.error('🚨 Error loading restaurants:', error);
+        console.error('Error details:', error.message, error.stack);
+        document.getElementById('restaurantsList').innerHTML = '<p>Error loading restaurants. Please try again later.</p>';
+    }
+}
