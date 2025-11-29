@@ -1,0 +1,53 @@
+{
+  "name": "Menus4ALL - Accessible Restaurant Menus",
+  "short_name": "Menus4ALL",
+  "description": "Access restaurant menus designed for people with visual impairments. Free accessible menus with text resizing and screen reader support.",
+  "start_url": "index-3.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#884b05",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "PWA_Logo_192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["accessibility", "lifestyle", "food"],
+  "shortcuts": [
+    {
+      "name": "Find Nearby Menus",
+      "short_name": "Nearby",
+      "description": "Find accessible menus near your location",
+      "url": "index-3.html#nearby-section",
+      "icons": [{ "src": "PWA_Logo_192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Search Menus",
+      "short_name": "Search",
+      "description": "Search for restaurant menus by name or location",
+      "url": "index-3.html#search",
+      "icons": [{ "src": "PWA_Logo_192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
