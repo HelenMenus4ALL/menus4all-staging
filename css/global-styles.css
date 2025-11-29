@@ -1,0 +1,236 @@
+/* ============================================ */
+/* GLOBAL HEADER AND NAVIGATION STYLES */
+/* Include this CSS on every page */
+/* ============================================ */
+
+/* Screen reader only class */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Skip link */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #000;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 100;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* ============================================ */
+/* MOBILE NAVIGATION OVERRIDES */
+/* These override styles.css to ensure new nav works */
+/* ============================================ */
+
+/* Force old navigation to NEVER show on mobile */
+@media (max-width: 767px) {
+    .main-nav {
+        display: none !important;
+    }
+    
+    .main-nav.active {
+        display: none !important;
+    }
+    
+    /* Ensure hamburger button is visible and clickable */
+    .menu-toggle {
+        display: block !important;
+        position: relative !important;
+        z-index: 10 !important;
+        /* Ensure button is touchable */
+        touch-action: manipulation;
+        cursor: pointer;
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+        /* Ensure minimum touch target size */
+        min-width: 44px !important;
+        min-height: 44px !important;
+    }
+    
+    /* Ensure new mobile nav container works */
+    .mobile-nav-container[data-visible="true"] {
+        display: block !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 2000 !important;
+    }
+}
+
+/* Desktop - show main nav, hide mobile elements */
+@media (min-width: 768px) {
+    .main-nav {
+        display: flex !important;
+        position: static !important;
+        flex-direction: row !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+    
+    /* Ensure mobile navigation is hidden on desktop */
+    .mobile-nav-container {
+        display: none !important;
+    }
+    
+    .menu-toggle {
+        display: none !important;
+    }
+}
+
+/* ============================================ */
+/* MOBILE NAVIGATION STYLES */
+/* ============================================ */
+
+/* Mobile Navigation Container - slides in from right */
+.mobile-nav-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: none;
+    overflow-y: auto;
+}
+
+.mobile-nav-container[data-visible="true"] {
+    display: block !important;
+}
+
+.mobile-nav-content {
+    background: #fff;
+    width: 85%;
+    max-width: 400px;
+    height: 100%;
+    margin-left: auto;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Mobile Nav Header */
+.mobile-nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 2px solid #ddd;
+    background: #f9f9f9;
+}
+
+.mobile-nav-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #884b05;
+    margin: 0;
+}
+
+/* Close button (X) in header */
+.close-menu-btn {
+    background: #000;
+    border: 2px solid #000;
+    color: white;
+    cursor: pointer;
+    font-weight: 700;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+    font-size: 1.5rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.close-menu-btn:hover,
+.close-menu-btn:focus {
+    background: #333;
+    border-color: #333;
+}
+
+/* Focus sentinels - invisible but focusable to trap focus */
+.focus-sentinel-start,
+.focus-sentinel-end {
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Help notice at bottom of menu */
+.menu-help-notice {
+    padding: 1rem;
+    border-top: 2px solid #ddd;
+    background: #f0f0f0;
+    margin-top: auto;
+}
+
+.close-menu-btn-alt {
+    background: #000;
+    border: 2px solid #000;
+    color: white;
+    cursor: pointer;
+    font-weight: 700;
+    width: 100%;
+    min-height: 50px;
+    padding: 12px;
+    font-size: 1.1rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-menu-btn-alt:hover,
+.close-menu-btn-alt:focus {
+    background: #333;
+    border-color: #333;
+}
+
+/* Mobile Navigation Links */
+.mobile-nav-links {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+    gap: 0.5rem;
+    overflow-y: auto;
+}
+
+.mobile-nav-links a {
+    display: block;
+    padding: 1rem;
+    color: #000;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.mobile-nav-links a:hover,
+.mobile-nav-links a:focus {
+    background-color: #f5f5f5;
+    color: #884b05;
+}
