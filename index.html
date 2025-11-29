@@ -1,185 +1,236 @@
-<!-- 
-    STAGING DUAL-PATH INDEX.HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Menus4ALL Menu Management Dashboard - Staging platform for accessible restaurant menus">
+    <title>Menus4ALL - Menu Management Dashboard</title>
     
-    This version safely reads from BOTH:
-    1. NEW structure: production/menus/usa/tennessee/memphis/restaurant-name/
-    2. OLD structure: production/menus/restaurant-id (flat)
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
     
-    TESTING INSTRUCTIONS:
-    1. Deploy ONLY to helenmenus4all.github.io/menus4all-staging
-    2. Test with existing menus (should work - old structure)
-    3. Add ONE test menu to new structure
-    4. Verify both load correctly
-    5. DO NOT deploy to production until fully tested
--->
-
-// Load restaurant data from Firebase with DUAL-PATH support
-async function loadRestaurants() {
-    try {
-        console.log('🔍 Starting restaurant load with dual-path support...');
-        
-        // FIRST: Try to load from production/menus path (new structure)
-        const newStructureRef = database.ref('/production/menus');
-        const newSnapshot = await newStructureRef.once('value');
-        const newData = newSnapshot.val();
-        
-        console.log('📁 New structure data:', newData ? 'Found' : 'Not found');
-        
-        // SECOND: Try to load from root (old/current structure  )
-        const oldStructureRef = database.ref('/');
-        const oldSnapshot = await oldStructureRef.once('value');
-        const oldData = oldSnapshot.val();
-        
-        console.log('📁 Old structure data:', oldData ? 'Found' : 'Not found');
-        
-        // Combine both sources
-        let combinedRestaurants = [];
-        
-        // Process NEW structure (country/state/city/restaurant)
-        if (newData && typeof newData === 'object') {
-            console.log('🌍 Processing new structure...');
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+    <!-- Skip to main content link for keyboard navigation -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <!-- Header -->
+    <header role="banner">
+        <div class="header-container">
+            <h1>
+                <img src="https://www.moderntechnology4theblind.org/wp-content/uploads/2024/10/cropped-Menus4All-TransparentSQlogo-192x192.png" 
+                     alt="Menus4ALL logo" 
+                     class="logo">
+                Menus4ALL Menu Management
+            </h1>
+            <p class="tagline">Staging Platform for Accessible Restaurant Menus</p>
+        </div>
+    </header>
+    
+    <!-- Main Navigation -->
+    <nav role="navigation" aria-label="Main navigation">
+        <ul class="nav-tabs" role="tablist">
+            <li role="presentation">
+                <button role="tab" 
+                        aria-selected="true" 
+                        aria-controls="all-menus-panel" 
+                        id="all-menus-tab"
+                        class="nav-tab active">
+                    All Menus <span class="count" aria-label="total menus">(0)</span>
+                </button>
+            </li>
+            <li role="presentation">
+                <button role="tab" 
+                        aria-selected="false" 
+                        aria-controls="needs-review-panel" 
+                        id="needs-review-tab"
+                        class="nav-tab">
+                    Needs Review <span class="count badge-review" aria-label="menus needing review">(0)</span>
+                </button>
+            </li>
+            <li role="presentation">
+                <button role="tab" 
+                        aria-selected="false" 
+                        aria-controls="update-due-panel" 
+                        id="update-due-tab"
+                        class="nav-tab">
+                    Update Due <span class="count badge-warning" aria-label="menus needing update">(0)</span>
+                </button>
+            </li>
+            <li role="presentation">
+                <button role="tab" 
+                        aria-selected="false" 
+                        aria-controls="in-progress-panel" 
+                        id="in-progress-tab"
+                        class="nav-tab">
+                    In Progress <span class="count" aria-label="menus in progress">(0)</span>
+                </button>
+            </li>
+            <li role="presentation">
+                <button role="tab" 
+                        aria-selected="false" 
+                        aria-controls="live-panel" 
+                        id="live-tab"
+                        class="nav-tab">
+                    Live <span class="count badge-success" aria-label="live menus">(0)</span>
+                </button>
+            </li>
+        </ul>
+    </nav>
+    
+    <!-- Main Content -->
+    <main id="main-content" role="main">
+        <!-- Action Bar -->
+        <div class="action-bar" role="toolbar" aria-label="Dashboard actions">
+            <div class="action-group">
+                <a href="menu-editor.html" class="btn btn-primary" role="button">
+                    <span aria-hidden="true">+</span> Create New Menu
+                </a>
+                <button id="refresh-btn" class="btn btn-secondary" aria-label="Refresh dashboard">
+                    <span aria-hidden="true">↻</span> Refresh
+                </button>
+            </div>
             
-            Object.keys(newData).forEach(country => {
-                if (country.startsWith('_')) return; // Skip metadata
+            <!-- Filters -->
+            <div class="filters" role="search" aria-label="Filter menus">
+                <label for="city-filter" class="visually-hidden">Filter by city</label>
+                <select id="city-filter" class="filter-select" aria-label="Filter by city">
+                    <option value="">All Cities</option>
+                </select>
                 
-                const countryData = newData[country];
-                if (typeof countryData !== 'object') return;
-                
-                Object.keys(countryData).forEach(state => {
-                    if (state.startsWith('_')) return;
-                    
-                    const stateData = countryData[state];
-                    if (typeof stateData !== 'object') return;
-                    
-                    Object.keys(stateData).forEach(city => {
-                        if (city.startsWith('_')) return;
-                        
-                        const cityData = stateData[city];
-                        if (typeof cityData !== 'object') return;
-                        
-                        Object.keys(cityData).forEach(restaurantSlug => {
-                            if (restaurantSlug.startsWith('_')) return;
-                            
-                            const restaurant = cityData[restaurantSlug];
-                            
-                            // Helper function to safely parse coordinates
-                            const parseCoord = (value) => {
-                                if (value === '' || value === null || value === undefined) return 0;
-                                const parsed = parseFloat(value);
-                                return isNaN(parsed) ? 0 : parsed;
-                            };
-                            
-                            let lat = parseCoord(restaurant.restaurantInfo?.lat) || parseCoord(restaurant.lat);
-                            let lng = parseCoord(restaurant.restaurantInfo?.lng) || parseCoord(restaurant.lng);
-                            
-                            // Fix swapped coordinates
-                            if (lat < -50 && lng > 0 && lng < 60) {
-                                console.warn(`⚠️ Swapped coordinates for ${restaurant.restaurantInfo?.name || restaurantSlug}`);
-                                const temp = lat;
-                                lat = lng;
-                                lng = temp;
-                            }
-                            
-                            combinedRestaurants.push({
-                                id: restaurantSlug,
-                                name: restaurant.restaurantInfo?.name || restaurant.name || 'Unknown Restaurant',
-                                category: restaurant.restaurantInfo?.cuisineType || restaurant.restaurantInfo?.category || restaurant.category || '',
-                                dietary: restaurant.restaurantInfo?.dietary || [],
-                                address: restaurant.restaurantInfo?.address || restaurant.address || '',
-                                city: restaurant.restaurantInfo?.city || restaurant.city || city,
-                                state: restaurant.restaurantInfo?.state || restaurant.state || state,
-                                country: country,
-                                phone: restaurant.restaurantInfo?.phone || restaurant.phone || '',
-                                averageMealPrice: restaurant.restaurantInfo?.averageMealPrice || '',
-                                heroImage: restaurant.restaurantInfo?.heroImage || '',
-                                heroImageAlt: restaurant.restaurantInfo?.heroImageAlt || '',
-                                lat: lat,
-                                lng: lng,
-                                hasCoordinates: lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng),
-                                source: 'new-structure',
-                                path: `${country}/${state}/${city}/${restaurantSlug}`
-                            });
-                            
-                            console.log(`✅ Loaded from NEW: ${restaurant.restaurantInfo?.name || restaurantSlug} (${country}/${state}/${city})`);
-                        });
-                    });
-                });
-            });
-        }
+                <label for="search-input" class="visually-hidden">Search menus</label>
+                <input type="search" 
+                       id="search-input" 
+                       class="search-input" 
+                       placeholder="Search restaurants..."
+                       aria-label="Search restaurants">
+            </div>
+        </div>
         
-        // Process OLD structure (flat restaurant IDs)
-        if (oldData && typeof oldData === 'object') {
-            console.log('📂 Processing old structure...');
+        <!-- Status Messages -->
+        <div role="status" aria-live="polite" aria-atomic="true" class="sr-only" id="status-message"></div>
+        <div role="alert" aria-live="assertive" aria-atomic="true" class="sr-only" id="error-message"></div>
+        
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading" role="status" aria-live="polite" aria-label="Loading menus">
+            <div class="spinner" aria-hidden="true"></div>
+            <p>Loading menus...</p>
+        </div>
+        
+        <!-- Tab Panels -->
+        <div class="tab-panels">
+            <!-- All Menus Panel -->
+            <section role="tabpanel" 
+                     id="all-menus-panel" 
+                     aria-labelledby="all-menus-tab"
+                     class="tab-panel active">
+                <h2 class="visually-hidden">All Menus</h2>
+                <div id="all-menus-list" class="menu-grid"></div>
+            </section>
             
-            Object.keys(oldData).forEach(key => {
-                if (key.startsWith('_') || key === 'production' || key === 'staging') return; // Skip metadata and new structure paths
-                
-                const restaurant = oldData[key];
-                if (!restaurant || typeof restaurant !== 'object') return;
-                
-                // Check if this restaurant already exists in new structure
-                const alreadyExists = combinedRestaurants.some(r => r.id === key);
-                if (alreadyExists) {
-                    console.log(`⏭️  Skipping duplicate: ${restaurant.restaurantInfo?.name || key} (already in new structure)`);
-                    return;
-                }
-                
-                const parseCoord = (value) => {
-                    if (value === '' || value === null || value === undefined) return 0;
-                    const parsed = parseFloat(value);
-                    return isNaN(parsed) ? 0 : parsed;
-                };
-                
-                let lat = parseCoord(restaurant.restaurantInfo?.lat) || parseCoord(restaurant.lat);
-                let lng = parseCoord(restaurant.restaurantInfo?.lng) || parseCoord(restaurant.lng);
-                
-                if (lat < -50 && lng > 0 && lng < 60) {
-                    const temp = lat;
-                    lat = lng;
-                    lng = temp;
-                }
-                
-                combinedRestaurants.push({
-                    id: key,
-                    name: restaurant.restaurantInfo?.name || restaurant.name || 'Unknown Restaurant',
-                    category: restaurant.restaurantInfo?.cuisineType || restaurant.restaurantInfo?.category || restaurant.category || '',
-                    dietary: restaurant.restaurantInfo?.dietary || [],
-                    address: restaurant.restaurantInfo?.address || restaurant.address || '',
-                    city: restaurant.restaurantInfo?.city || restaurant.city || '',
-                    state: restaurant.restaurantInfo?.state || restaurant.state || '',
-                    country: 'usa', // Default for old structure
-                    phone: restaurant.restaurantInfo?.phone || restaurant.phone || '',
-                    averageMealPrice: restaurant.restaurantInfo?.averageMealPrice || '',
-                    heroImage: restaurant.restaurantInfo?.heroImage || '',
-                    heroImageAlt: restaurant.restaurantInfo?.heroImageAlt || '',
-                    lat: lat,
-                    lng: lng,
-                    hasCoordinates: lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng),
-                    source: 'old-structure',
-                    path: key
-                });
-                
-                console.log(`✅ Loaded from OLD: ${restaurant.restaurantInfo?.name || key}`);
-            });
-        }
+            <!-- Needs Review Panel -->
+            <section role="tabpanel" 
+                     id="needs-review-panel" 
+                     aria-labelledby="needs-review-tab"
+                     class="tab-panel"
+                     hidden>
+                <h2 class="visually-hidden">Menus Needing Review</h2>
+                <div id="needs-review-list" class="menu-grid"></div>
+            </section>
+            
+            <!-- Update Due Panel -->
+            <section role="tabpanel" 
+                     id="update-due-panel" 
+                     aria-labelledby="update-due-tab"
+                     class="tab-panel"
+                     hidden>
+                <h2 class="visually-hidden">Menus Needing Update</h2>
+                <div id="update-due-list" class="menu-grid"></div>
+            </section>
+            
+            <!-- In Progress Panel -->
+            <section role="tabpanel" 
+                     id="in-progress-panel" 
+                     aria-labelledby="in-progress-tab"
+                     class="tab-panel"
+                     hidden>
+                <h2 class="visually-hidden">Menus In Progress</h2>
+                <div id="in-progress-list" class="menu-grid"></div>
+            </section>
+            
+            <!-- Live Panel -->
+            <section role="tabpanel" 
+                     id="live-panel" 
+                     aria-labelledby="live-tab"
+                     class="tab-panel"
+                     hidden>
+                <h2 class="visually-hidden">Live Menus</h2>
+                <div id="live-list" class="menu-grid"></div>
+            </section>
+        </div>
         
-        if (combinedRestaurants.length === 0) {
-            console.log('❌ No restaurant data found in either structure');
-            document.getElementById('restaurantsList').innerHTML = '<p>No restaurants available yet.</p>';
-            return;
-        }
-        
-        allRestaurants = combinedRestaurants.filter(r => r.name && r.address);
-        
-        console.log('✅ Total restaurants loaded:', allRestaurants.length);
-        console.log('📊 From new structure:', allRestaurants.filter(r => r.source === 'new-structure').length);
-        console.log('📊 From old structure:', allRestaurants.filter(r => r.source === 'old-structure').length);
-        console.log('📍 With coordinates:', allRestaurants.filter(r => r.hasCoordinates).length);
-        
-        displayAllRestaurants();
-    } catch (error) {
-        console.error('🚨 Error loading restaurants:', error);
-        console.error('Error details:', error.message, error.stack);
-        document.getElementById('restaurantsList').innerHTML = '<p>Error loading restaurants. Please try again later.</p>';
-    }
-}
+        <!-- Empty State -->
+        <div id="empty-state" class="empty-state" hidden>
+            <h2>No Menus Found</h2>
+            <p>Get started by creating your first menu.</p>
+            <a href="menu-editor.html" class="btn btn-primary">Create New Menu</a>
+        </div>
+    </main>
+    
+    <!-- Modal for Actions -->
+    <div id="action-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true" hidden>
+        <div class="modal-content">
+            <h2 id="modal-title" class="modal-title"></h2>
+            <div id="modal-body" class="modal-body"></div>
+            <div class="modal-actions">
+                <button id="modal-confirm" class="btn btn-primary">Confirm</button>
+                <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer role="contentinfo">
+        <p>
+            <a href="https://www.moderntechnology4theblind.org">Modern Technology for the Blind</a> | 
+            Menus4ALL &copy; 2024
+        </p>
+        <p>
+            <a href="#keyboard-shortcuts" id="keyboard-shortcuts-link">Keyboard Shortcuts</a>
+        </p>
+    </footer>
+    
+    <!-- Keyboard Shortcuts Help (hidden by default) -->
+    <section id="keyboard-shortcuts" class="help-section" hidden aria-labelledby="shortcuts-title">
+        <h2 id="shortcuts-title">Keyboard Shortcuts</h2>
+        <dl class="shortcuts-list">
+            <dt><kbd>Tab</kbd></dt>
+            <dd>Navigate forward through interactive elements</dd>
+            
+            <dt><kbd>Shift + Tab</kbd></dt>
+            <dd>Navigate backward through interactive elements</dd>
+            
+            <dt><kbd>Enter</kbd> or <kbd>Space</kbd></dt>
+            <dd>Activate buttons and links</dd>
+            
+            <dt><kbd>Arrow Keys</kbd></dt>
+            <dd>Navigate between tabs</dd>
+            
+            <dt><kbd>Escape</kbd></dt>
+            <dd>Close modal dialogs</dd>
+            
+            <dt><kbd>Ctrl/Cmd + F</kbd></dt>
+            <dd>Focus search input</dd>
+        </dl>
+        <button id="close-shortcuts" class="btn btn-secondary">Close</button>
+    </section>
+    
+    <!-- Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
