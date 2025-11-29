@@ -1241,6 +1241,31 @@
         let allRestaurants = [];
         let userLocation = null;
 
+        // Favorites functionality
+        function isFavorite(restaurantId) {
+            const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            return favorites.includes(restaurantId);
+        }
+
+        function toggleFavorite(restaurantId, button) {
+            const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            const index = favorites.indexOf(restaurantId);
+            
+            if (index > -1) {
+                // Remove from favorites
+                favorites.splice(index, 1);
+                button.classList.remove('is-favorite');
+                button.setAttribute('aria-label', 'Add to favorites');
+            } else {
+                // Add to favorites
+                favorites.push(restaurantId);
+                button.classList.add('is-favorite');
+                button.setAttribute('aria-label', 'Add to favorites');
+            }
+            
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+        }
+
         // Load restaurant data from Firebase with DUAL-PATH support
         async function loadRestaurants() {
             try {
