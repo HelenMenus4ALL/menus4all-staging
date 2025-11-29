@@ -1,0 +1,64 @@
+/* ============================================
+   Menus4ALL - iOS PWA Banner Fix
+   ============================================
+   This CSS fixes the sticky PWA banner covering 
+   the site navigation on iOS Safari
+   ============================================ */
+
+/* Primary fix: Add safe area padding for iOS devices */
+@supports (-webkit-touch-callout: none) {
+    /* Target iOS Safari specifically */
+    body {
+        /* Add padding at top to account for PWA banner */
+        padding-top: 60px !important;
+        /* Use safe area insets when available */
+        padding-top: max(60px, env(safe-area-inset-top)) !important;
+    }
+    
+    /* Adjust header/navigation if needed */
+    .elementor-location-header,
+    header,
+    #masthead {
+        margin-top: 0 !important;
+    }
+}
+
+/* Alternative approach - if the above doesn't work perfectly */
+/* Uncomment this section if needed */
+/*
+@media screen and (max-width: 768px) {
+    body {
+        padding-top: 70px !important;
+    }
+    
+    .elementor-section:first-of-type {
+        margin-top: 10px !important;
+    }
+}
+*/
+
+/* Ensure the search sections aren't hidden under banner */
+.elementor-section {
+    position: relative;
+    z-index: 1;
+}
+
+/* Fix for dropdown menus if they appear */
+.elementor-nav-menu--dropdown {
+    margin-top: 60px;
+}
+
+/* Smooth transition when banner appears/disappears */
+body {
+    transition: padding-top 0.3s ease;
+}
+
+/* ============================================
+   Additional viewport meta tag recommendation:
+   Add this to your header.php or use a plugin:
+   
+   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+   
+   The "viewport-fit=cover" is key for handling 
+   the safe area properly
+   ============================================ */

@@ -1,0 +1,106 @@
+/* Fix for container width not maintaining size during text scaling */
+
+/* Method 1: Set explicit max-width on main container */
+.main-container,
+.elementor-section,
+.elementor-container {
+  max-width: 1200px !important; /* Adjust to your design width */
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Method 2: Ensure the container doesn't shrink based on content */
+.site-main,
+.content-area,
+#main-content {
+  max-width: 1200px !important;
+  width: calc(100% - 40px) !important; /* Subtract padding if needed */
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Prevent flex/grid containers from shrinking */
+.elementor-widget-wrap {
+  min-width: 100% !important;
+}
+
+/* For the hero section with the Menus4ALL logo */
+.hero-section,
+.elementor-section-boxed > .elementor-container {
+  max-width: 1200px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Ensure buttons container doesn't shrink */
+.button-container,
+.menu-buttons-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* For the three button row (Menus Nearby, Search, All Menus) */
+.elementor-row,
+.menu-action-buttons {
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  gap: 20px !important;
+}
+
+/* Individual button columns should maintain equal width */
+.elementor-column {
+  flex: 1 1 33.33% !important;
+  min-width: 0 !important; /* Prevents flex items from overflowing */
+}
+
+/* Alternative: Use CSS Grid for button layout */
+.button-grid-wrapper {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 20px !important;
+  width: 100% !important;
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+}
+
+/* Ensure text scaling doesn't affect layout */
+.text-resizer-active .main-container,
+.text-resizer-active .elementor-container {
+  width: 100% !important;
+  max-width: 1200px !important;
+}
+
+/* Prevent horizontal scrolling */
+body {
+  overflow-x: hidden !important;
+}
+
+.site-content {
+  width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+/* Media query for responsive behavior */
+@media (max-width: 1024px) {
+  .main-container,
+  .elementor-container {
+    max-width: 90% !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .elementor-row,
+  .menu-action-buttons,
+  .button-grid-wrapper {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+  }
+  
+  .elementor-column {
+    flex: 1 1 100% !important;
+  }
+}

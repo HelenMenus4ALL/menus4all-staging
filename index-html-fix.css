@@ -1,0 +1,35 @@
+/* ============================================
+   FIX FOR INDEX.HTML CONTAINER WIDTH ISSUE
+   ============================================
+   
+   PROBLEM: Lines 459-464 in your index.html set max-width:100% 
+   on ALL elements when text is scaled, which overrides your 
+   .container { max-width: 1200px; }
+   
+   SOLUTION: Replace lines 459-464 with this code:
+*/
+
+/* Ensure no element can cause horizontal scroll */
+/* BUT exclude containers that need fixed max-widths */
+body.text-size-125 *:not(.container):not(.site-header):not(.hero-banner):not(.cta-buttons),
+body.text-size-150 *:not(.container):not(.site-header):not(.hero-banner):not(.cta-buttons),
+body.text-size-175 *:not(.container):not(.site-header):not(.hero-banner):not(.cta-buttons),
+body.text-size-200 *:not(.container):not(.site-header):not(.hero-banner):not(.cta-buttons) {
+    max-width: 100%;
+}
+
+/* Explicitly lock container width at all text sizes */
+.container {
+    max-width: 1200px !important;
+    width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Also ensure the hero and CTA sections maintain width */
+.hero-banner,
+.cta-buttons {
+    max-width: 1200px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
