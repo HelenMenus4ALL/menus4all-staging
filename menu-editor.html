@@ -358,12 +358,32 @@
                 </fieldset>
                 
                 <div class="form-group">
-                    <label for="restaurant-image">Restaurant Image URL</label>
-                    <input type="url" 
-                           id="restaurant-image" 
-                           name="restaurantImage" 
-                           placeholder="https://example.com/image.jpg">
-                    <span class="help-text">URL to restaurant exterior or interior image</span>
+                    <label for="hero-image">Hero Image Upload</label>
+                    <input type="file" 
+                           id="hero-image" 
+                           name="heroImage" 
+                           accept="image/jpeg,image/png,image/webp"
+                           aria-describedby="hero-image-help">
+                    <span id="hero-image-help" class="help-text">Upload restaurant hero image (JPG, PNG, or WebP)</span>
+                    <div id="hero-image-preview" class="image-preview" hidden></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="hero-image-path">Hero Image Path/URL</label>
+                    <input type="text" 
+                           id="hero-image-path" 
+                           name="heroImagePath" 
+                           placeholder="https://www.menus4all.com/images/memphis/restaurant-name.jpg">
+                    <span class="help-text">Example: https://www.menus4all.com/images/memphis/restaurant-name.jpg (This will be used for the website URL)</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="hero-image-caption">Hero Image Alt Text (Caption)</label>
+                    <textarea id="hero-image-caption" 
+                              name="heroImageCaption" 
+                              rows="2"
+                              placeholder="Restaurant Name exterior showing outdoor seating area"></textarea>
+                    <span class="help-text">Alt text description for accessibility - start with restaurant name and describe what's visible in the image</span>
                 </div>
             </section>
             
@@ -680,6 +700,24 @@
                     }
                 });
             });
+            
+            // Hero image preview
+            document.getElementById('hero-image').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const preview = document.getElementById('hero-image-preview');
+                
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        preview.innerHTML = `<img src="${event.target.result}" alt="Hero image preview" style="max-width: 100%; height: auto; border-radius: 4px;">`;
+                        preview.hidden = false;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.innerHTML = '';
+                    preview.hidden = true;
+                }
+            });
         }
         
         function updateTimestamp() {
@@ -961,7 +999,9 @@
                 pricing: {
                     priceRangeText: document.getElementById('price-range-text').value.trim(),
                     averageMealPrice: document.querySelector('input[name="averageMealPrice"]:checked')?.value || '',
-                    restaurantImage: document.getElementById('restaurant-image').value.trim()
+                    heroImage: document.getElementById('hero-image').files[0] || null,
+                    heroImagePath: document.getElementById('hero-image-path').value.trim(),
+                    heroImageCaption: document.getElementById('hero-image-caption').value.trim()
                 },
                 categories: [],
                 cuisineInfo: {
@@ -1065,6 +1105,12 @@
             
             let html = `
                 <div style="border-bottom: 2px solid var(--primary-color); padding-bottom: var(--spacing-md); margin-bottom: var(--spacing-lg);">
+                    ${formData.pricing.heroImagePath ? `
+                        <img src="${formData.pricing.heroImagePath}" 
+                             alt="${formData.pricing.heroImageCaption || 'Restaurant hero image'}" 
+                             style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px; margin-bottom: var(--spacing-md);">
+                        ${formData.pricing.heroImageCaption ? `<p style="font-size: var(--font-size-sm); font-style: italic; color: var(--text-secondary);">Alt text: ${formData.pricing.heroImageCaption}</p>` : ''}
+                    ` : ''}
                     <h3>${formData.basicInfo.restaurantName}</h3>
                     <p>${formData.basicInfo.address}, ${formData.basicInfo.city}, ${formData.basicInfo.state}</p>
                     <p>📞 ${formData.basicInfo.phoneNumber || 'No phone'}</p>
