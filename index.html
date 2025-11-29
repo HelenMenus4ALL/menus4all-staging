@@ -1267,9 +1267,89 @@
         }
 
         // Load restaurant data from Firebase with DUAL-PATH support
+        // FLEXIBLE VERSION - handles both restaurantInfo wrapper and flat structure
         async function loadRestaurants() {
             try {
                 console.log('🔍 Starting restaurant load with dual-path support...');
+                
+                // Helper function to extract restaurant data regardless of structure
+                function extractRestaurantData(restaurant, key) {
+                    // Check if data is wrapped in restaurantInfo
+                    const info = restaurant.restaurantInfo || restaurant;
+                    
+                    // Helper function to safely parse coordinates
+                    const parseCoord = (value) => {
+                        if (value === '' || value === null || value === undefined) return 0;
+                        const parsed = parseFloat(value);
+                        return isNaN(parsed) ? 0 : parsed;
+                    };
+                    
+                    // Try multiple possible field names for each property
+                    const getName = () => {
+                        return info.name || info.restaurantName || restaurant.restaurantName || 'Unknown Restaurant';
+                    };
+                    
+                    const getAddress = () => {
+                        return info.address || restaurant.address || '';
+                    };
+                    
+                    const getCity = () => {
+                        return info.city || restaurant.city || '';
+                    };
+                    
+                    const getState = () => {
+                        return info.state || restaurant.state || '';
+                    };
+                    
+                    const getPhone = () => {
+                        return info.phone || info.phoneNumber || restaurant.phoneNumber || '';
+                    };
+                    
+                    const getCategory = () => {
+                        return info.cuisineType || info.category || info.cuisineOther || restaurant.cuisineOther || '';
+                    };
+                    
+                    const getPrice = () => {
+                        return info.averageMealPrice || restaurant.averageMealPrice || '';
+                    };
+                    
+                    const getImage = () => {
+                        return info.heroImage || info.heroImagePath || restaurant.heroImagePath || '';
+                    };
+                    
+                    const getImageAlt = () => {
+                        return info.heroImageAlt || info.heroImageCaption || restaurant.heroImageCaption || '';
+                    };
+                    
+                    // Get coordinates with multiple possible field names
+                    let lat = parseCoord(info.lat) || parseCoord(info.latitude) || parseCoord(restaurant.latitude);
+                    let lng = parseCoord(info.lng) || parseCoord(info.longitude) || parseCoord(restaurant.longitude);
+                    
+                    // Fix swapped coordinates
+                    if (lat < -50 && lng > 0 && lng < 60) {
+                        console.warn(`⚠️ Swapped coordinates for ${getName()}`);
+                        const temp = lat;
+                        lat = lng;
+                        lng = temp;
+                    }
+                    
+                    return {
+                        id: key,
+                        name: getName(),
+                        category: getCategory(),
+                        dietary: info.dietary || restaurant.dietary || [],
+                        address: getAddress(),
+                        city: getCity(),
+                        state: getState(),
+                        phone: getPhone(),
+                        averageMealPrice: getPrice(),
+                        heroImage: getImage(),
+                        heroImageAlt: getImageAlt(),
+                        lat: lat,
+                        lng: lng,
+                        hasCoordinates: lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng)
+                    };
+                }
                 
                 // FIRST: Try to load from production/menus path (new structure)
                 const newStructureRef = database.ref('/production/menus');
@@ -1293,7 +1373,7 @@
                     console.log('🌍 Processing new structure...');
                     
                     Object.keys(newData).forEach(country => {
-                        if (country.startsWith('_')) return; // Skip metadata
+                        if (country.startsWith('_')) return;
                         
                         const countryData = newData[country];
                         if (typeof countryData !== 'object') return;
@@ -1314,46 +1394,18 @@
                                     if (restaurantSlug.startsWith('_')) return;
                                     
                                     const restaurant = cityData[restaurantSlug];
-                                    
-                                    // Helper function to safely parse coordinates
-                                    const parseCoord = (value) => {
-                                        if (value === '' || value === null || value === undefined) return 0;
-                                        const parsed = parseFloat(value);
-                                        return isNaN(parsed) ? 0 : parsed;
-                                    };
-                                    
-                                    let lat = parseCoord(restaurant.restaurantInfo?.lat) || parseCoord(restaurant.lat);
-                                    let lng = parseCoord(restaurant.restaurantInfo?.lng) || parseCoord(restaurant.lng);
-                                    
-                                    // Fix swapped coordinates
-                                    if (lat < -50 && lng > 0 && lng < 60) {
-                                        console.warn(`⚠️ Swapped coordinates for ${restaurant.restaurantInfo?.name || restaurantSlug}`);
-                                        const temp = lat;
-                                        lat = lng;
-                                        lng = temp;
-                                    }
+                                    const restaurantData = extractRestaurantData(restaurant, restaurantSlug);
                                     
                                     combinedRestaurants.push({
-                                        id: restaurantSlug,
-                                        name: restaurant.restaurantInfo?.name || restaurant.name || 'Unknown Restaurant',
-                                        category: restaurant.restaurantInfo?.cuisineType || restaurant.restaurantInfo?.category || restaurant.category || '',
-                                        dietary: restaurant.restaurantInfo?.dietary || [],
-                                        address: restaurant.restaurantInfo?.address || restaurant.address || '',
-                                        city: restaurant.restaurantInfo?.city || restaurant.city || city,
-                                        state: restaurant.restaurantInfo?.state || restaurant.state || state,
+                                        ...restaurantData,
                                         country: country,
-                                        phone: restaurant.restaurantInfo?.phone || restaurant.phone || '',
-                                        averageMealPrice: restaurant.restaurantInfo?.averageMealPrice || '',
-                                        heroImage: restaurant.restaurantInfo?.heroImage || '',
-                                        heroImageAlt: restaurant.restaurantInfo?.heroImageAlt || '',
-                                        lat: lat,
-                                        lng: lng,
-                                        hasCoordinates: lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng),
+                                        city: restaurantData.city || city,
+                                        state: restaurantData.state || state,
                                         source: 'new-structure',
                                         path: `${country}/${state}/${city}/${restaurantSlug}`
                                     });
                                     
-                                    console.log(`✅ Loaded from NEW: ${restaurant.restaurantInfo?.name || restaurantSlug} (${country}/${state}/${city})`);
+                                    console.log(`✅ Loaded from NEW: ${restaurantData.name} (${country}/${state}/${city})`);
                                 });
                             });
                         });
@@ -1365,7 +1417,8 @@
                     console.log('📂 Processing old structure...');
                     
                     Object.keys(oldData).forEach(key => {
-                        if (key.startsWith('_') || key === 'production' || key === 'staging') return; // Skip metadata and new structure paths
+                        // Skip metadata and new structure paths
+                        if (key.startsWith('_') || key === 'production' || key === 'staging') return;
                         
                         const restaurant = oldData[key];
                         if (!restaurant || typeof restaurant !== 'object') return;
@@ -1373,46 +1426,21 @@
                         // Check if this restaurant already exists in new structure
                         const alreadyExists = combinedRestaurants.some(r => r.id === key);
                         if (alreadyExists) {
-                            console.log(`⏭️  Skipping duplicate: ${restaurant.restaurantInfo?.name || key} (already in new structure)`);
+                            const restaurantData = extractRestaurantData(restaurant, key);
+                            console.log(`⏭️  Skipping duplicate: ${restaurantData.name} (already in new structure)`);
                             return;
                         }
                         
-                        const parseCoord = (value) => {
-                            if (value === '' || value === null || value === undefined) return 0;
-                            const parsed = parseFloat(value);
-                            return isNaN(parsed) ? 0 : parsed;
-                        };
-                        
-                        let lat = parseCoord(restaurant.restaurantInfo?.lat) || parseCoord(restaurant.lat);
-                        let lng = parseCoord(restaurant.restaurantInfo?.lng) || parseCoord(restaurant.lng);
-                        
-                        if (lat < -50 && lng > 0 && lng < 60) {
-                            const temp = lat;
-                            lat = lng;
-                            lng = temp;
-                        }
+                        const restaurantData = extractRestaurantData(restaurant, key);
                         
                         combinedRestaurants.push({
-                            id: key,
-                            name: restaurant.restaurantInfo?.name || restaurant.name || 'Unknown Restaurant',
-                            category: restaurant.restaurantInfo?.cuisineType || restaurant.restaurantInfo?.category || restaurant.category || '',
-                            dietary: restaurant.restaurantInfo?.dietary || [],
-                            address: restaurant.restaurantInfo?.address || restaurant.address || '',
-                            city: restaurant.restaurantInfo?.city || restaurant.city || '',
-                            state: restaurant.restaurantInfo?.state || restaurant.state || '',
+                            ...restaurantData,
                             country: 'usa', // Default for old structure
-                            phone: restaurant.restaurantInfo?.phone || restaurant.phone || '',
-                            averageMealPrice: restaurant.restaurantInfo?.averageMealPrice || '',
-                            heroImage: restaurant.restaurantInfo?.heroImage || '',
-                            heroImageAlt: restaurant.restaurantInfo?.heroImageAlt || '',
-                            lat: lat,
-                            lng: lng,
-                            hasCoordinates: lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng),
                             source: 'old-structure',
                             path: key
                         });
                         
-                        console.log(`✅ Loaded from OLD: ${restaurant.restaurantInfo?.name || key}`);
+                        console.log(`✅ Loaded from OLD: ${restaurantData.name}`);
                     });
                 }
                 
