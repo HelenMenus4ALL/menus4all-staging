@@ -943,11 +943,14 @@
                 errors.push('Price Range is required - enter specific pricing from menu/Google OR select an approximate range');
             }
             
-            // Check categories and items
+            // Check categories and items (allow if CSV is uploaded)
+            const csvFile = document.getElementById('csv-upload');
+            const hasCSV = csvFile && csvFile.files && csvFile.files.length > 0;
             const categories = document.querySelectorAll('.category-block');
-            if (categories.length === 0) {
-                errors.push('At least one menu category is required');
-            } else {
+            
+            if (categories.length === 0 && !hasCSV) {
+                errors.push('At least one menu category is required OR upload a CSV file');
+            } else if (categories.length > 0) {
                 categories.forEach((cat, index) => {
                     const catName = cat.querySelector('.category-name').value.trim();
                     if (!catName) {
