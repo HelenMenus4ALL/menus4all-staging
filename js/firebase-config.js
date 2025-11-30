@@ -4,7 +4,7 @@
  * 1. Staging Database (menus4all-staging) - for drafts, review, workflow
  * 2. Production Database (menus4allbeta) - for live menus on your website
  * 
- * Production path structure: state/city/restaurant-name
+ * Production path structure: restaurant-slug (flat at root)
  */
 
 // STAGING Firebase Configuration (for workflow)
@@ -144,7 +144,7 @@ async function updateMenuStatus(menuId, status, reviewNotes = null) {
 
 /**
  * Push menu to PRODUCTION database (Menus4ALLBeta)
- * Uses path structure: state/city/restaurant-name
+ * Uses FLAT structure: restaurant-slug at root (matches existing 61 menus)
  */
 async function pushMenuToProduction(menuId) {
     try {
@@ -155,78 +155,73 @@ async function pushMenuToProduction(menuId) {
             throw new Error('Menu not found in staging');
         }
         
-        // Validate required fields for production path
-        if (!stagingMenu.state) {
-            throw new Error('State is required to push to production');
-        }
-        if (!stagingMenu.city) {
-            throw new Error('City is required to push to production');
-        }
+        // Validate required fields
         if (!stagingMenu.restaurantName) {
             throw new Error('Restaurant name is required to push to production');
         }
         
-        // Prepare production data (remove staging-specific fields and undefined values)
-        const productionDataRaw = {
-            restaurantName: stagingMenu.restaurantName,
-            address: stagingMenu.address,
-            city: stagingMenu.city,
-            state: stagingMenu.state,
-            latitude: stagingMenu.latitude,
-            longitude: stagingMenu.longitude,
-            phoneNumber: stagingMenu.phoneNumber,
-            hours: stagingMenu.hours,
-            averageMealPrice: stagingMenu.averageMealPrice,
-            heroImagePath: stagingMenu.heroImagePath,
-            heroImageURL: stagingMenu.heroImageURL,
-            heroImageCaption: stagingMenu.heroImageCaption,
-            websiteURLs: stagingMenu.websiteURLs,
-            menuType: stagingMenu.menuType,
-            generalMenuNotes: stagingMenu.generalMenuNotes,
-            menuNotesAdditional: stagingMenu.menuNotesAdditional,
-            disclaimer: stagingMenu.disclaimer,
-            cuisineTypes: stagingMenu.cuisineTypes,
-            cuisineOther: stagingMenu.cuisineOther,
-            dietaryOptions: stagingMenu.dietaryOptions,
-            technicalNotes: stagingMenu.technicalNotes,
-            sectionDetails: stagingMenu.sectionDetails,
-            csvData: stagingMenu.csvData,
-            menuJson: stagingMenu.menuJson,
-            requestedBy: stagingMenu.requestedBy,
-            liveDate: Date.now(),
-            stagingId: menuId,
-            lastUpdated: Date.now()
+        // Generate restaurant slug for production (flat structure at root)
+        const restaurantSlug = generateSlug(stagingMenu.restaurantName);
+        
+        // Check if menu already exists in production
+        const existingMenu = await productionDb.child(restaurantSlug).once('value');
+        if (existingMenu.exists()) {
+            const overwrite = confirm(`Menu "${stagingMenu.restaurantName}" already exists in production. Overwrite?`);
+            if (!overwrite) {
+                throw new Error('Push cancelled - menu already exists');
+            }
+        }
+        
+        // Prepare production data structure (matches existing menu format)
+        const productionData = {
+            restaurantInfo: {
+                name: stagingMenu.restaurantName,
+                address: stagingMenu.address || '',
+                city: stagingMenu.city || '',
+                state: stagingMenu.state || '',
+                phone: stagingMenu.phoneNumber || '',
+                cuisineType: stagingMenu.cuisineTypes?.[0] || stagingMenu.cuisineOther || '',
+                dietary: stagingMenu.dietaryOptions || [],
+                averageMealPrice: stagingMenu.averageMealPrice || '',
+                heroImage: stagingMenu.heroImagePath || stagingMenu.heroImageURL || '',
+                heroImageAlt: stagingMenu.heroImageCaption || '',
+                hours: stagingMenu.hours || [],
+                lat: parseFloat(stagingMenu.latitude) || 0,
+                lng: parseFloat(stagingMenu.longitude) || 0,
+                slug: restaurantSlug,
+                googleMapsUrl: stagingMenu.latitude && stagingMenu.longitude 
+                    ? `https://www.google.com/maps/search/?api=1&query=${stagingMenu.latitude},${stagingMenu.longitude}`
+                    : '',
+                menuIntro: stagingMenu.generalMenuNotes || '',
+                disclaimer: stagingMenu.disclaimer || ''
+            },
+            menu: stagingMenu.menuJson || {}
         };
         
-        // Remove undefined/null/empty values
-        const productionData = removeUndefinedValues(productionDataRaw);
+        // Remove undefined/null values from restaurantInfo
+        productionData.restaurantInfo = removeUndefinedValues(productionData.restaurantInfo);
         
-        // Generate production path: state/city/restaurant-name
-        const stateSlug = generateSlug(stagingMenu.state);
-        const citySlug = generateSlug(stagingMenu.city);
-        const restaurantSlug = generateSlug(stagingMenu.restaurantName);
-        const productionPath = `${stateSlug}/${citySlug}/${restaurantSlug}`;
-        
-        console.log('Pushing to production path:', productionPath);
+        console.log('Pushing to production (FLAT structure):', restaurantSlug);
         console.log('Production data:', productionData);
         
-        // Save to PRODUCTION database at state/city/restaurant-name
-        await productionDb.child(productionPath).set(productionData);
+        // Save to PRODUCTION database at ROOT level (flat structure)
+        await productionDb.child(restaurantSlug).set(productionData);
         
         // Update staging menu status and add production reference
         const nextUpdateDue = Date.now() + (90 * 24 * 60 * 60 * 1000); // 90 days
         await stagingDb.child(`staging-menus/${menuId}`).update({
             status: MenuStatus.LIVE,
             liveDate: Date.now(),
-            productionPath: productionPath,
+            productionPath: restaurantSlug,
+            productionSlug: restaurantSlug,
             nextUpdateDue: nextUpdateDue,
             lastUpdated: Date.now()
         });
         
-        console.log('Successfully pushed to production:', productionPath);
-        return productionPath;
+        console.log('✅ Successfully pushed to production (flat structure):', restaurantSlug);
+        return restaurantSlug;
     } catch (error) {
-        console.error('Error pushing to production:', error);
+        console.error('❌ Error pushing to production:', error);
         throw error;
     }
 }
