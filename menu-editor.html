@@ -150,6 +150,27 @@
         .validation-summary ul {
             margin: var(--spacing-sm) 0 0 var(--spacing-lg);
         }
+        
+        /* READABILITY FIXES */
+        /* Make headings and paragraphs visible and scannable */
+        h2 {
+            color: #212529 !important;
+            margin-top: 2.5rem !important;
+        }
+        
+        h2:first-of-type {
+            margin-top: 0 !important;
+        }
+        
+        p {
+            color: #212529 !important;
+        }
+        
+        .form-section h2 {
+            color: #212529 !important;
+            margin-top: 0 !important;
+            margin-bottom: 1.5rem !important;
+        }
     </style>
 </head>
 <body>
@@ -387,20 +408,8 @@
                 </div>
             </section>
             
-            <!-- Section 3: Menu Categories & Items -->
-            <section class="form-section menu-categories-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>Menu Categories & Items</h2>
-                    <button type="button" class="btn btn-primary" id="add-category-btn">
-                        ➕ Add Category
-                    </button>
-                </div>
-                
-                <div id="categories-container">
-                    <!-- Categories will be dynamically added here -->
-                    <p class="help-text">Click "Add Category" to start building your menu. Each category can contain multiple items.</p>
-                </div>
-            </section>
+            <!-- Section 3: Menu Categories & Items - REMOVED -->
+            <!-- You upload CSV files instead of manually building categories -->
             
             <!-- Section 4: Cuisine & Dietary Info -->
             <section class="form-section">
@@ -673,7 +682,8 @@
         });
         
         function setupEventListeners() {
-            document.getElementById('add-category-btn').addEventListener('click', addCategory);
+            // REMOVED: document.getElementById('add-category-btn').addEventListener('click', addCategory);
+            // Manual category building removed - use CSV upload instead
             document.getElementById('preview-btn').addEventListener('click', showPreview);
             document.getElementById('close-preview').addEventListener('click', closePreview);
             document.getElementById('menu-form').addEventListener('submit', handleSave);
@@ -733,6 +743,11 @@
             document.getElementById('last-updated').value = formatted;
         }
         
+        /* ========================================
+           MANUAL CATEGORY BUILDING - DISABLED
+           You use CSV files instead
+           ======================================== */
+        /*
         function addCategory() {
             const container = document.getElementById('categories-container');
             const categoryId = `category-${categoryCounter++}`;
@@ -911,6 +926,10 @@
         function removeOption(optionId) {
             document.getElementById(optionId).remove();
         }
+        */
+        /* ======================================== 
+           END OF DISABLED MANUAL CATEGORY CODE 
+           ======================================== */
         
         function validateForm() {
             const errors = [];
