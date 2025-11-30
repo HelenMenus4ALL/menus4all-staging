@@ -76,6 +76,12 @@ label {
     color: var(--text-color);
 }
 
+/* CRITICAL: Override any white label colors from other stylesheets */
+.form-group label,
+.form-section label {
+    color: #212529 !important;
+}
+
 label.required::after {
     content: ' *';
     color: var(--danger-color);
