@@ -320,3 +320,13 @@ async function getMenusByCity(city) {
 function generateMenuId() {
     return 'menu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
+
+// ============================================================================
+// EXPOSE FUNCTIONS GLOBALLY FOR MENU EDITOR
+// ============================================================================
+window.saveMenuToStaging = saveMenuToStaging;
+window.generateMenuId = generateMenuId;
+window.getAllStagingMenus = getAllStagingMenus;
+window.updateMenuStatus = updateMenuStatus;
+window.deleteMenuFromStaging = deleteMenuFromStaging;
+window.pushMenuToProduction = pushMenuToProduction;
