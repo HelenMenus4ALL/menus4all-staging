@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Menus4ALL Menu Editor - Create and edit accessible restaurant menus">
+    <title>Menu Editor - Menus4ALL</title>
+    
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/menu-editor.css">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <style>
+        /* Additional styles for new features */
+        .menu-categories-section {
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+            background-color: var(--bg-secondary);
+        }
+        
+        /* Hours period styling */
+        .hours-period {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            position: relative;
+        }
+        
+        .hours-period-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .hours-period-title {
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        
+        .remove-hours-btn {
+            background: var(--error-color);
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .remove-hours-btn:hover {
+            background: #c82333;
+        }
+        
+        .hours-fields {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-sm);
+        }
+        
+        .hours-time-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto;
+            gap: var(--spacing-sm);
+            align-items: end;
+        }
+        
+        .time-input-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .time-input-group input {
+            flex: 1;
+        }
+        
+        .ampm-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+        
+        .ampm-group label {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.9em;
+        }
+        
+        .category-block {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+            position: relative;
+        }
+        
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 2px solid var(--primary-color);
+        }
+        
+        .category-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+        
+        .menu-item-block {
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--success-color);
+            padding: var(--spacing-md);
+            margin: var(--spacing-sm) 0;
+            position: relative;
+        }
+        
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .item-options {
+            margin-left: var(--spacing-lg);
+            padding: var(--spacing-sm);
+            background: var(--bg-color);
+            border-radius: 4px;
+        }
+        
+        .option-item {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin: var(--spacing-xs) 0;
+            align-items: center;
+        }
+        
+        .btn-icon {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: transparent;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .btn-icon:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .btn-icon:focus {
+            outline: var(--focus-outline);
+            outline-offset: var(--focus-outline-offset);
+        }
+        
+        .preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .preview-content {
+            background: var(--bg-color);
+            max-width: 800px;
+            margin: 50px auto;
+            padding: var(--spacing-xl);
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .preview-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        
+        .preview-close:focus {
+            outline: var(--focus-outline);
+        }
+        
+        .timestamp-display {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            font-style: italic;
+        }
+        
+        .validation-summary {
+            background: #fff3cd;
+            border: 1px solid var(--warning-color);
+            padding: var(--spacing-md);
+            border-radius: 6px;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .validation-summary.hidden {
+            display: none;
+        }
+        
+        .validation-summary ul {
+            margin: var(--spacing-sm) 0 0 var(--spacing-lg);
+        }
+        
+        /* READABILITY FIXES */
+        /* Make headings and paragraphs visible and scannable */
+        h2 {
+            color: #212529 !important;
+            margin-top: 2.5rem !important;
+        }
+        
+        h2:first-of-type {
+            margin-top: 0 !important;
+        }
+        
+        p {
+            color: #212529 !important;
+        }
+        
+        .form-section h2 {
+            color: #212529 !important;
+            margin-top: 0 !important;
+            margin-bottom: 1.5rem !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip Link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <!-- Header -->
+    <header role="banner">
+        <div class="header-container">
+            <h1>
+                <img src="https://www.moderntechnology4theblind.org/wp-content/uploads/2024/10/cropped-Menus4All-TransparentSQlogo-192x192.png" 
+                     alt="Menus4ALL logo" 
+                     class="logo">
+                Menu Editor
+            </h1>
+            <nav aria-label="Breadcrumb">
+                <ol class="breadcrumb">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li aria-current="page">Menu Editor</li>
+                </ol>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" role="main">
+        <!-- Auto-save Status -->
+        <div class="save-status" role="status" aria-live="polite" aria-atomic="true">
+            <span id="save-status-text">Ready to edit</span>
+        </div>
+        
+        <!-- Validation Summary -->
+        <div id="validation-summary" class="validation-summary hidden" role="alert">
+            <h3>⚠️ Please fix the following issues:</h3>
+            <ul id="validation-list"></ul>
+        </div>
+        
+        <!-- Form -->
+        <form id="menu-form" class="menu-form" novalidate>
+            <input type="hidden" id="menu-id" name="menuId">
+            
+            <!-- Section 1: Basic Information -->
+            <section class="form-section">
+                <h2>Basic Information</h2>
+                
+                <div class="form-group">
+                    <label for="restaurant-name" class="required">Restaurant Name</label>
+                    <input type="text" 
+                           id="restaurant-name" 
+                           name="restaurantName" 
+                           required 
+                           aria-required="true"
+                           autocomplete="organization">
+                    <span class="error-message" role="alert"></span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address" class="required">Address</label>
+                    <input type="text" 
+                           id="address" 
+                           name="address" 
+                           required 
+                           aria-required="true"
+                           autocomplete="street-address">
+                    <span class="error-message" role="alert"></span>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="city" class="required">City</label>
+                        <input type="text" 
+                               id="city" 
+                               name="city" 
+                               required 
+                               aria-required="true"
+                               autocomplete="address-level2">
+                        <span class="error-message" role="alert"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="state" class="required">State (full state name, not 2 letters)</label>
+                        <input type="text" 
+                               id="state" 
+                               name="state" 
+                               required 
+                               aria-required="true"
+                               autocomplete="address-level1"
+                               placeholder="e.g., Tennessee">
+                        <span class="error-message" role="alert"></span>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="latitude" class="required">Latitude</label>
+                        <input type="text" 
+                               id="latitude" 
+                               name="latitude" 
+                               required 
+                               aria-required="true"
+                               placeholder="35.1495"
+                               pattern="^-?([0-9]{1,2}|1[0-7][0-9]|180)(\.[0-9]{1,10})?$">
+                        <span class="help-text">Decimal format (e.g., 35.1495)</span>
+                        <span class="error-message" role="alert"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="longitude" class="required">Longitude</label>
+                        <input type="text" 
+                               id="longitude" 
+                               name="longitude" 
+                               required 
+                               aria-required="true"
+                               placeholder="-90.0490"
+                               pattern="^-?([0-9]{1,2}|1[0-7][0-9]|180)(\.[0-9]{1,10})?$">
+                        <span class="help-text">Decimal format (e.g., -90.0490)</span>
+                        <span class="error-message" role="alert"></span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" 
+                           id="phone" 
+                           name="phoneNumber" 
+                           autocomplete="tel"
+                           placeholder="+1 (555) 555-5555">
+                    <span class="help-text">Format: +1 (555) 555-5555</span>
+                </div>
+                
+                <!-- Hours (Structured) -->
+                <div class="form-group">
+                    <label>Hours</label>
+                    <p class="help-text">Add restaurant operating hours. First period is required. Click "Add Hours Period" for additional time slots (up to 7).</p>
+                    
+                    <div id="hours-container">
+                        <!-- Hours periods will be added here dynamically -->
+                    </div>
+                    
+                    <button type="button" id="add-hours-btn" class="btn btn-secondary" style="margin-top: 10px;">
+                        ➕ Add Hours Period
+                    </button>
+                    <p class="help-text" style="margin-top: 5px;"><span id="hours-count">0</span> of 7 periods</p>
+                </div>
+                
+                <!-- Last Updated Timestamp (Auto-populated) -->
+                <div class="form-group">
+                    <label for="last-updated">Last Updated</label>
+                    <input type="text" 
+                           id="last-updated" 
+                           name="lastUpdated" 
+                           readonly 
+                           class="timestamp-display"
+                           value="">
+                    <span class="help-text">Automatically updated when you save</span>
+                </div>
+            </section>
+            
+            <!-- Section 2: Pricing & Images -->
+            <section class="form-section">
+                <h2>Pricing & Images</h2>
+                
+                <div class="form-group">
+                    <label for="price-range-text" class="required">Price Range</label>
+                    <input type="text" 
+                           id="price-range-text" 
+                           name="priceRangeText" 
+                           placeholder="e.g., $12-18, $8.99-$24.99, $15-$25 per person"
+                           required
+                           aria-required="true"
+                           aria-describedby="price-range-help">
+                    <span id="price-range-help" class="help-text">
+                        <strong>First choice:</strong> Look for specific price range on the menu or Google. Enter exactly what you find (e.g., "$12-18", "$8.99-$24.99").
+                        <br>If you cannot find specific pricing information, leave this blank and use the radio buttons below.
+                    </span>
+                    <span class="error-message" role="alert"></span>
+                </div>
+                
+                <fieldset class="form-group">
+                    <legend>Approximate Price Range (only if specific pricing not available)</legend>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="price-1" 
+                                   name="averageMealPrice" 
+                                   value="$">
+                            <label for="price-1">$ (Under $10 per person)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="price-2" 
+                                   name="averageMealPrice" 
+                                   value="$$">
+                            <label for="price-2">$$ ($11-$30 per person)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="price-3" 
+                                   name="averageMealPrice" 
+                                   value="$$$">
+                            <label for="price-3">$$$ ($31-$60 per person)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="price-4" 
+                                   name="averageMealPrice" 
+                                   value="$$$$">
+                            <label for="price-4">$$$$ ($61+ per person)</label>
+                        </div>
+                    </div>
+                    <span class="help-text">Select a range only if you couldn't find specific pricing above</span>
+                </fieldset>
+                
+                <div class="form-group">
+                    <label for="hero-image">Hero Image Upload</label>
+                    <input type="file" 
+                           id="hero-image" 
+                           name="heroImage" 
+                           accept="image/jpeg,image/png,image/webp"
+                           aria-describedby="hero-image-help">
+                    <span id="hero-image-help" class="help-text">Upload restaurant hero image (JPG, PNG, or WebP)</span>
+                    <div id="hero-image-preview" class="image-preview" hidden></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="hero-image-path">Hero Image Path/URL</label>
+                    <input type="text" 
+                           id="hero-image-path" 
+                           name="heroImagePath" 
+                           placeholder="https://www.menus4all.com/images/memphis/restaurant-name.jpg">
+                    <span class="help-text">Example: https://www.menus4all.com/images/memphis/restaurant-name.jpg (This will be used for the website URL)</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="hero-image-caption">Hero Image Alt Text (Caption)</label>
+                    <textarea id="hero-image-caption" 
+                              name="heroImageCaption" 
+                              rows="2"
+                              placeholder="Restaurant Name exterior showing outdoor seating area"></textarea>
+                    <span class="help-text">Alt text description for accessibility - start with restaurant name and describe what's visible in the image</span>
+                </div>
+            </section>
+            
+            <!-- Section 3: Menu Data via CSV Upload -->
+            <!-- Manual category entry removed - use CSV file above for menu data -->
+            
+            <!-- Section 4: Cuisine & Dietary Info -->
+            <section class="form-section">
+                <h2>Cuisine & Dietary Information</h2>
+                
+                <fieldset class="form-group">
+                    <legend>Cuisine Type(s)</legend>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-american" name="cuisineTypes" value="American">
+                            <label for="cuisine-american">American</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-italian" name="cuisineTypes" value="Italian">
+                            <label for="cuisine-italian">Italian</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-chinese" name="cuisineTypes" value="Chinese">
+                            <label for="cuisine-chinese">Chinese</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-mexican" name="cuisineTypes" value="Mexican">
+                            <label for="cuisine-mexican">Mexican</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-thai" name="cuisineTypes" value="Thai">
+                            <label for="cuisine-thai">Thai</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-japanese" name="cuisineTypes" value="Japanese">
+                            <label for="cuisine-japanese">Japanese</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-indian" name="cuisineTypes" value="Indian">
+                            <label for="cuisine-indian">Indian</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-mediterranean" name="cuisineTypes" value="Mediterranean">
+                            <label for="cuisine-mediterranean">Mediterranean</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-bbq" name="cuisineTypes" value="BBQ">
+                            <label for="cuisine-bbq">BBQ</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-seafood" name="cuisineTypes" value="Seafood">
+                            <label for="cuisine-seafood">Seafood</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-steakhouse" name="cuisineTypes" value="Steakhouse">
+                            <label for="cuisine-steakhouse">Steakhouse</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-pizza" name="cuisineTypes" value="Pizza">
+                            <label for="cuisine-pizza">Pizza</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-burger" name="cuisineTypes" value="Burgers">
+                            <label for="cuisine-burger">Burgers</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-sandwich" name="cuisineTypes" value="Sandwiches">
+                            <label for="cuisine-sandwich">Sandwiches</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-cafe" name="cuisineTypes" value="Cafe">
+                            <label for="cuisine-cafe">Cafe</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-bakery" name="cuisineTypes" value="Bakery">
+                            <label for="cuisine-bakery">Bakery</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="cuisine-other" name="cuisineTypes" value="Other">
+                            <label for="cuisine-other">Other</label>
+                        </div>
+                    </div>
+                </fieldset>
+                
+                <div class="form-group">
+                    <label for="cuisine-other-text">Cuisine Type - Other</label>
+                    <input type="text" 
+                           id="cuisine-other-text" 
+                           name="cuisineOther" 
+                           placeholder="If you selected 'Other' above, specify here">
+                </div>
+                
+                <fieldset class="form-group">
+                    <legend>Dietary Options Available</legend>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-vegan" name="dietaryOptions" value="Vegan">
+                            <label for="diet-vegan">Vegan</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-vegetarian" name="dietaryOptions" value="Vegetarian">
+                            <label for="diet-vegetarian">Vegetarian</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-gluten" name="dietaryOptions" value="Gluten Free">
+                            <label for="diet-gluten">Gluten Free</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-dairy" name="dietaryOptions" value="Dairy Free">
+                            <label for="diet-dairy">Dairy Free</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-kosher" name="dietaryOptions" value="Kosher">
+                            <label for="diet-kosher">Kosher</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="diet-halal" name="dietaryOptions" value="Halal">
+                            <label for="diet-halal">Halal</label>
+                        </div>
+                    </div>
+                </fieldset>
+            </section>
+            
+            <!-- Section 5: Technical Details -->
+            <section class="form-section">
+                <h2>Technical Details</h2>
+                
+                <div class="form-group">
+                    <label for="technical-notes">Technical Menu Scanning Notes</label>
+                    <textarea id="technical-notes" 
+                              name="technicalNotes" 
+                              rows="4"
+                              placeholder="Technical notes about menu structure, formatting issues, special characters, etc."></textarea>
+                    <span class="help-text">Technical notes about menu structure, formatting issues, special characters, etc.</span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="section-details">Section Extra Details</label>
+                    <textarea id="section-details" 
+                              name="sectionDetails" 
+                              rows="4"
+                              placeholder="Details about menu sections, categories, special organization notes"></textarea>
+                    <span class="help-text">Details about menu sections, categories, special organization notes</span>
+                </div>
+            </section>
+            
+            <!-- Section 6: File Uploads & Metadata -->
+            <section class="form-section">
+                <h2>File Uploads & Metadata</h2>
+                
+                <div class="form-group">
+                    <label for="csv-upload">CSV File Upload</label>
+                    <input type="file" 
+                           id="csv-upload" 
+                           name="csvFile" 
+                           accept=".csv"
+                           aria-describedby="csv-help">
+                    <span id="csv-help" class="help-text">Upload the menu CSV file - JSON will be auto-generated from this</span>
+                    <div id="csv-preview" class="file-preview" hidden></div>
+                </div>
+                
+                <fieldset class="form-group">
+                    <legend class="required">Status</legend>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="status-draft" 
+                                   name="status" 
+                                   value="draft" 
+                                   required 
+                                   checked>
+                            <label for="status-draft">Draft (Minimum info - to complete later)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="status-progress" 
+                                   name="status" 
+                                   value="in-progress">
+                            <label for="status-progress">In Progress (Being worked on)</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="status-ready" 
+                                   name="status" 
+                                   value="ready-for-review">
+                            <label for="status-ready">Ready for Review</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" 
+                                   id="status-complete" 
+                                   name="status" 
+                                   value="complete">
+                            <label for="status-complete">Complete</label>
+                        </div>
+                    </div>
+                    <span class="error-message" role="alert"></span>
+                </fieldset>
+                
+                <div class="form-group">
+                    <label for="assigned-to">Assigned To</label>
+                    <input type="text" 
+                           id="assigned-to" 
+                           name="assignedTo" 
+                           placeholder="Your name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="requested-by">Requested By</label>
+                    <input type="text" 
+                           id="requested-by" 
+                           name="requestedBy" 
+                           required 
+                           aria-required="true"
+                           placeholder="Your name or who requested this menu conversion">
+                    <span class="error-message" role="alert"></span>
+                </div>
+            </section>
+            
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-success" id="preview-btn">
+                    👁️ Preview Menu
+                </button>
+                <button type="submit" class="btn btn-primary" id="save-btn">
+                    💾 Save Menu
+                </button>
+                <button type="button" class="btn btn-secondary" id="save-draft-btn">
+                    📝 Save as Draft
+                </button>
+                <a href="index.html" class="btn btn-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </main>
+    
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="preview-modal">
+        <div class="preview-content">
+            <button class="preview-close" id="close-preview">&times;</button>
+            <h2>Menu Preview</h2>
+            <div id="preview-body">
+                <!-- Preview content will be inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer role="contentinfo">
+        <p>
+            <a href="https://www.moderntechnology4theblind.org">Modern Technology for the Blind</a> | 
+            Menus4ALL &copy; 2024
+        </p>
+        <p><a href="dashboard.html">Back to Dashboard</a></p>
+    </footer>
+    
+    <!-- Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script>
+        // Menu Editor JavaScript
+        let categoryCounter = 0;
+        let itemCounter = 0;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTimestamp();
+            setupEventListeners();
+            
+            // Add first hours period (required)
+            addHoursPeriod();
+            
+            // Load existing menu if editing
+            const urlParams = new URLSearchParams(window.location.search);
+            const menuId = urlParams.get('id');
+            if (menuId) {
+                loadMenu(menuId);
+            }
+        });
+        
+        // ========================================================================
+        // HOURS PERIOD MANAGEMENT
+        // ========================================================================
+        let hoursPeriodCount = 0;
+        const MAX_HOURS_PERIODS = 7;
+        
+        function addHoursPeriod() {
+            if (hoursPeriodCount >= MAX_HOURS_PERIODS) {
+                alert(`Maximum ${MAX_HOURS_PERIODS} hours periods allowed.`);
+                return;
+            }
+            
+            hoursPeriodCount++;
+            const container = document.getElementById('hours-container');
+            const periodDiv = document.createElement('div');
+            periodDiv.className = 'hours-period';
+            periodDiv.dataset.periodId = hoursPeriodCount;
+            
+            const isRequired = hoursPeriodCount === 1;
+            const requiredText = isRequired ? ' <span style="color: var(--error-color);">*</span>' : '';
+            
+            periodDiv.innerHTML = `
+                <div class="hours-period-header">
+                    <span class="hours-period-title">Period ${hoursPeriodCount}${requiredText}</span>
+                    ${!isRequired ? '<button type="button" class="remove-hours-btn" onclick="removeHoursPeriod(this)">Remove</button>' : ''}
+                </div>
+                <div class="hours-fields">
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label>Days${requiredText}</label>
+                        <input type="text" 
+                               class="days-input" 
+                               placeholder="e.g., Monday - Friday"
+                               ${isRequired ? 'required' : ''}>
+                        <span class="help-text">e.g., Monday - Friday, Saturday - Sunday, Daily</span>
+                    </div>
+                    <div class="hours-time-row">
+                        <div class="form-group" style="margin: 0;">
+                            <label>Open${requiredText}</label>
+                            <input type="text" 
+                                   class="open-time" 
+                                   placeholder="11:00"
+                                   ${isRequired ? 'required' : ''}>
+                            <span class="help-text">e.g., 11:00</span>
+                        </div>
+                        <div class="ampm-group">
+                            <label><input type="radio" name="open-ampm-${hoursPeriodCount}" value="AM" class="open-ampm" checked> AM</label>
+                            <label><input type="radio" name="open-ampm-${hoursPeriodCount}" value="PM" class="open-ampm"> PM</label>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label>Close${requiredText}</label>
+                            <input type="text" 
+                                   class="close-time" 
+                                   placeholder="10:00"
+                                   ${isRequired ? 'required' : ''}>
+                            <span class="help-text">e.g., 10:00</span>
+                        </div>
+                        <div class="ampm-group">
+                            <label><input type="radio" name="close-ampm-${hoursPeriodCount}" value="AM" class="close-ampm"> AM</label>
+                            <label><input type="radio" name="close-ampm-${hoursPeriodCount}" value="PM" class="close-ampm" checked> PM</label>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(periodDiv);
+            updateHoursCount();
+        }
+        
+        function removeHoursPeriod(button) {
+            const periodDiv = button.closest('.hours-period');
+            periodDiv.remove();
+            hoursPeriodCount--;
+            updateHoursCount();
+            
+            // Renumber remaining periods
+            const periods = document.querySelectorAll('.hours-period');
+            periods.forEach((period, index) => {
+                const title = period.querySelector('.hours-period-title');
+                const isFirst = index === 0;
+                const requiredText = isFirst ? ' <span style="color: var(--error-color);">*</span>' : '';
+                title.innerHTML = `Period ${index + 1}${requiredText}`;
+            });
+        }
+        
+        function updateHoursCount() {
+            document.getElementById('hours-count').textContent = hoursPeriodCount;
+            const addBtn = document.getElementById('add-hours-btn');
+            addBtn.disabled = hoursPeriodCount >= MAX_HOURS_PERIODS;
+            if (hoursPeriodCount >= MAX_HOURS_PERIODS) {
+                addBtn.style.opacity = '0.5';
+                addBtn.style.cursor = 'not-allowed';
+            } else {
+                addBtn.style.opacity = '1';
+                addBtn.style.cursor = 'pointer';
+            }
+        }
+        
+        // Collect hours data as array of objects
+        function collectHoursData() {
+            const hours = [];
+            const periods = document.querySelectorAll('.hours-period');
+            
+            periods.forEach(period => {
+                const days = period.querySelector('.days-input').value.trim();
+                const openTime = period.querySelector('.open-time').value.trim();
+                const openAmPm = period.querySelector('.open-ampm:checked').value;
+                const closeTime = period.querySelector('.close-time').value.trim();
+                const closeAmPm = period.querySelector('.close-ampm:checked').value;
+                
+                if (days && openTime && closeTime) {
+                    hours.push({
+                        days: days,
+                        open: `${openTime} ${openAmPm}`,
+                        close: `${closeTime} ${closeAmPm}`
+                    });
+                }
+            });
+            
+            return hours;
+        }
+        // ========================================================================
+        
+        function setupEventListeners() {
+            document.getElementById('preview-btn').addEventListener('click', showPreview);
+            document.getElementById('close-preview').addEventListener('click', closePreview);
+            document.getElementById('menu-form').addEventListener('submit', handleSave);
+            document.getElementById('save-draft-btn').addEventListener('click', handleSaveDraft);
+            document.getElementById('add-hours-btn').addEventListener('click', addHoursPeriod);
+            
+            // Handle interaction between text field and radio buttons
+            const priceTextField = document.getElementById('price-range-text');
+            const priceRadios = document.querySelectorAll('input[name="averageMealPrice"]');
+            
+            // If user types in text field, clear radio buttons and make text field required
+            priceTextField.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    priceRadios.forEach(radio => radio.checked = false);
+                    this.setAttribute('required', 'required');
+                }
+            });
+            
+            // If user selects a radio button, clear text field and make it optional
+            priceRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        priceTextField.value = '';
+                        priceTextField.removeAttribute('required');
+                    }
+                });
+            });
+            
+            // Hero image preview
+            document.getElementById('hero-image').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const preview = document.getElementById('hero-image-preview');
+                
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        preview.innerHTML = `<img src="${event.target.result}" alt="Hero image preview" style="max-width: 100%; height: auto; border-radius: 4px;">`;
+                        preview.hidden = false;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.innerHTML = '';
+                    preview.hidden = true;
+                }
+            });
+        }
+        
+        function updateTimestamp() {
+            const now = new Date();
+            const formatted = now.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZoneName: 'short'
+            });
+            document.getElementById('last-updated').value = formatted;
+        }
+        
+        /* ========================================
+           MANUAL CATEGORY BUILDING - DISABLED
+           You use CSV files instead
+           ======================================== */
+        /*
+        function addCategory() {
+            const container = document.getElementById('categories-container');
+            const categoryId = `category-${categoryCounter++}`;
+            
+            const categoryHTML = `
+                <div class="category-block" id="${categoryId}" data-category-id="${categoryId}">
+                    <div class="category-header">
+                        <h3>Category ${categoryCounter}</h3>
+                        <div class="category-controls">
+                            <button type="button" class="btn-icon" onclick="moveCategory('${categoryId}', 'up')" title="Move Up">
+                                ⬆️
+                            </button>
+                            <button type="button" class="btn-icon" onclick="moveCategory('${categoryId}', 'down')" title="Move Down">
+                                ⬇️
+                            </button>
+                            <button type="button" class="btn-icon" onclick="removeCategory('${categoryId}')" title="Remove Category">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="${categoryId}-name" class="required">Category Name</label>
+                        <input type="text" 
+                               id="${categoryId}-name" 
+                               class="category-name" 
+                               placeholder="e.g., Appetizers, Main Courses, Desserts" 
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="${categoryId}-description">Category Description (optional)</label>
+                        <textarea id="${categoryId}-description" 
+                                  class="category-description" 
+                                  rows="2"
+                                  placeholder="Brief description of this category"></textarea>
+                    </div>
+                    
+                    <div style="margin: 15px 0;">
+                        <button type="button" class="btn btn-small btn-success" onclick="addItem('${categoryId}')">
+                            ➕ Add Menu Item
+                        </button>
+                    </div>
+                    
+                    <div class="items-container" id="${categoryId}-items">
+                        <!-- Items will be added here -->
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', categoryHTML);
+        }
+        
+        function removeCategory(categoryId) {
+            if (confirm('Remove this category and all its items?')) {
+                document.getElementById(categoryId).remove();
+            }
+        }
+        
+        function moveCategory(categoryId, direction) {
+            const category = document.getElementById(categoryId);
+            const sibling = direction === 'up' ? category.previousElementSibling : category.nextElementSibling;
+            
+            if (sibling && sibling.classList.contains('category-block')) {
+                if (direction === 'up') {
+                    category.parentNode.insertBefore(category, sibling);
+                } else {
+                    category.parentNode.insertBefore(sibling, category);
+                }
+            }
+        }
+        
+        function addItem(categoryId) {
+            const container = document.getElementById(`${categoryId}-items`);
+            const itemId = `item-${itemCounter++}`;
+            
+            const itemHTML = `
+                <div class="menu-item-block" id="${itemId}" data-item-id="${itemId}">
+                    <div class="item-header">
+                        <h4>Menu Item ${itemCounter}</h4>
+                        <button type="button" class="btn-icon" onclick="removeItem('${itemId}')" title="Remove Item">
+                            🗑️
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="${itemId}-name" class="required">Item Name</label>
+                        <input type="text" 
+                               id="${itemId}-name" 
+                               class="item-name" 
+                               placeholder="e.g., Grilled Chicken Sandwich" 
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="${itemId}-description">Description</label>
+                        <textarea id="${itemId}-description" 
+                                  class="item-description" 
+                                  rows="2"
+                                  placeholder="Description of the item, ingredients, etc."></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="${itemId}-price">Price</label>
+                            <input type="text" 
+                                   id="${itemId}-price" 
+                                   class="item-price" 
+                                   placeholder="$12.99">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="${itemId}-calories">Calories (optional)</label>
+                            <input type="text" 
+                                   id="${itemId}-calories" 
+                                   class="item-calories" 
+                                   placeholder="450">
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 10px 0;">
+                        <button type="button" class="btn btn-small" onclick="toggleOptions('${itemId}')">
+                            ⚙️ Add Options/Modifications
+                        </button>
+                    </div>
+                    
+                    <div class="item-options" id="${itemId}-options" style="display: none;">
+                        <h5>Options & Modifications</h5>
+                        <div id="${itemId}-options-list">
+                            <!-- Options will be added here -->
+                        </div>
+                        <button type="button" class="btn btn-small" onclick="addOption('${itemId}')">
+                            ➕ Add Option
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', itemHTML);
+        }
+        
+        function removeItem(itemId) {
+            if (confirm('Remove this menu item?')) {
+                document.getElementById(itemId).remove();
+            }
+        }
+        
+        function toggleOptions(itemId) {
+            const optionsDiv = document.getElementById(`${itemId}-options`);
+            optionsDiv.style.display = optionsDiv.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function addOption(itemId) {
+            const container = document.getElementById(`${itemId}-options-list`);
+            const optionId = `option-${Date.now()}`;
+            
+            const optionHTML = `
+                <div class="option-item" id="${optionId}">
+                    <input type="text" 
+                           class="option-name" 
+                           placeholder="Option name (e.g., Small, Medium, Large)" 
+                           style="flex: 1;">
+                    <input type="text" 
+                           class="option-price" 
+                           placeholder="Price modifier (e.g., +$2.00)" 
+                           style="width: 150px;">
+                    <button type="button" class="btn-icon" onclick="removeOption('${optionId}')">
+                        ❌
+                    </button>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', optionHTML);
+        }
+        
+        function removeOption(optionId) {
+            document.getElementById(optionId).remove();
+        }
+        */
+        /* ======================================== 
+           END OF DISABLED MANUAL CATEGORY CODE 
+           ======================================== */
+        
+        function validateForm() {
+            const errors = [];
+            
+            // Check required basic fields
+            if (!document.getElementById('restaurant-name').value.trim()) {
+                errors.push('Restaurant Name is required');
+            }
+            if (!document.getElementById('address').value.trim()) {
+                errors.push('Address is required');
+            }
+            if (!document.getElementById('city').value.trim()) {
+                errors.push('City is required');
+            }
+            if (!document.getElementById('state').value.trim()) {
+                errors.push('State is required');
+            }
+            if (!document.getElementById('latitude').value.trim()) {
+                errors.push('Latitude is required');
+            }
+            if (!document.getElementById('longitude').value.trim()) {
+                errors.push('Longitude is required');
+            }
+            
+            // Check that either specific price text OR radio button is selected
+            const priceText = document.getElementById('price-range-text').value.trim();
+            const priceRadio = document.querySelector('input[name="averageMealPrice"]:checked');
+            
+            if (!priceText && !priceRadio) {
+                errors.push('Price Range is required - enter specific pricing from menu/Google OR select an approximate range');
+            }
+            
+            // Check categories and items (allow if CSV is uploaded)
+            const csvFile = document.getElementById('csv-upload');
+            const hasCSV = csvFile && csvFile.files && csvFile.files.length > 0;
+            const categories = document.querySelectorAll('.category-block');
+            
+            if (categories.length === 0 && !hasCSV) {
+                errors.push('At least one menu category is required OR upload a CSV file');
+            } else if (categories.length > 0) {
+                categories.forEach((cat, index) => {
+                    const catName = cat.querySelector('.category-name').value.trim();
+                    if (!catName) {
+                        errors.push(`Category ${index + 1} must have a name`);
+                    }
+                    
+                    const items = cat.querySelectorAll('.menu-item-block');
+                    if (items.length === 0) {
+                        errors.push(`Category "${catName || index + 1}" must have at least one item`);
+                    } else {
+                        items.forEach((item, itemIndex) => {
+                            const itemName = item.querySelector('.item-name').value.trim();
+                            if (!itemName) {
+                                errors.push(`Item ${itemIndex + 1} in "${catName}" must have a name`);
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // Display errors or hide validation summary
+            const validationSummary = document.getElementById('validation-summary');
+            const validationList = document.getElementById('validation-list');
+            
+            if (errors.length > 0) {
+                validationList.innerHTML = errors.map(err => `<li>${err}</li>`).join('');
+                validationSummary.classList.remove('hidden');
+                validationSummary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return false;
+            } else {
+                validationSummary.classList.add('hidden');
+                return true;
+            }
+        }
+        
+        function collectFormData() {
+            const data = {
+                basicInfo: {
+                    restaurantName: document.getElementById('restaurant-name').value.trim(),
+                    address: document.getElementById('address').value.trim(),
+                    city: document.getElementById('city').value.trim(),
+                    state: document.getElementById('state').value.trim(),
+                    latitude: parseFloat(document.getElementById('latitude').value),
+                    longitude: parseFloat(document.getElementById('longitude').value),
+                    phoneNumber: document.getElementById('phone').value.trim(),
+                    hours: collectHoursData(),  // Use structured hours data
+                    lastUpdated: document.getElementById('last-updated').value
+                },
+                pricing: {
+                    priceRangeText: document.getElementById('price-range-text').value.trim(),
+                    averageMealPrice: document.querySelector('input[name="averageMealPrice"]:checked')?.value || '',
+                    heroImage: document.getElementById('hero-image').files[0] || null,
+                    heroImagePath: document.getElementById('hero-image-path').value.trim(),
+                    heroImageCaption: document.getElementById('hero-image-caption').value.trim()
+                },
+                categories: [],
+                cuisineInfo: {
+                    cuisineTypes: Array.from(document.querySelectorAll('input[name="cuisineTypes"]:checked')).map(cb => cb.value),
+                    cuisineOther: document.getElementById('cuisine-other-text').value.trim(),
+                    dietaryOptions: Array.from(document.querySelectorAll('input[name="dietaryOptions"]:checked')).map(cb => cb.value)
+                },
+                metadata: {
+                    status: document.querySelector('input[name="status"]:checked')?.value || 'draft',
+                    assignedTo: document.getElementById('assigned-to').value.trim(),
+                    requestedBy: document.getElementById('requested-by').value.trim(),
+                    technicalNotes: document.getElementById('technical-notes').value.trim(),
+                    sectionDetails: document.getElementById('section-details').value.trim()
+                }
+            };
+            
+            // Collect categories and items
+            const categories = document.querySelectorAll('.category-block');
+            categories.forEach(cat => {
+                const categoryData = {
+                    name: cat.querySelector('.category-name').value.trim(),
+                    description: cat.querySelector('.category-description').value.trim(),
+                    items: []
+                };
+                
+                const items = cat.querySelectorAll('.menu-item-block');
+                items.forEach(item => {
+                    const itemData = {
+                        name: item.querySelector('.item-name').value.trim(),
+                        description: item.querySelector('.item-description').value.trim(),
+                        price: item.querySelector('.item-price').value.trim(),
+                        calories: item.querySelector('.item-calories').value.trim(),
+                        options: []
+                    };
+                    
+                    // Collect options
+                    const options = item.querySelectorAll('.option-item');
+                    options.forEach(opt => {
+                        const optionName = opt.querySelector('.option-name').value.trim();
+                        const optionPrice = opt.querySelector('.option-price').value.trim();
+                        if (optionName) {
+                            itemData.options.push({
+                                name: optionName,
+                                priceModifier: optionPrice
+                            });
+                        }
+                    });
+                    
+                    categoryData.items.push(itemData);
+                });
+                
+                data.categories.push(categoryData);
+            });
+            
+            return data;
+        }
+        
+        function handleSave(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+            
+            updateTimestamp();
+            const formData = collectFormData();
+            
+            // Save to Firebase
+            saveToFirebase(formData, 'complete');
+        }
+        
+        function handleSaveDraft() {
+            updateTimestamp();
+            const formData = collectFormData();
+            formData.metadata.status = 'draft';
+            
+            // Save to Firebase
+            saveToFirebase(formData, 'draft');
+        }
+        
+        // ========================================================================
+        // CSV PARSING FUNCTION - MATCHES PRODUCTION MENU STRUCTURE EXACTLY
+        // ========================================================================
+        async function parseCSVToMenu(csvText) {
+            // Parse CSV (handle both tabs and commas)
+            const lines = csvText.split('\n').filter(l => l.trim());
+            const rows = lines.map(line => {
+                if (line.includes('\t')) {
+                    return line.split('\t').map(c => c.trim());
+                }
+                return line.split(',').map(c => c.trim());
+            });
+            
+            // Skip header if it looks like headers
+            let dataRows = rows;
+            if (rows[0] && rows[0].some(cell => /restaurant|day|menu|item|section|price/i.test(cell))) {
+                dataRows = rows.slice(1);
+            }
+            
+            // Helper function to format price as string (keep dollar sign!)
+            function formatPrice(priceStr) {
+                if (!priceStr) return '';
+                // If already has $, return as-is
+                if (priceStr.includes('$')) return priceStr;
+                // Otherwise add $ to the number
+                const num = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
+                if (isNaN(num)) return priceStr;
+                return '$' + num.toFixed(2);
+            }
+            
+            // Build menu structure matching production format
+            const categories = {};
+            const dayPartMap = {}; // Track unique day parts
+            let dayPartCounter = 1;
+            let globalItemCounter = 1; // Global item counter across all sections
+            
+            dataRows.forEach(row => {
+                const dayPart = (row[1] || '').trim();
+                const section = (row[2] || '').trim();
+                const itemName = (row[3] || '').trim();
+                const description = (row[4] || '').trim();
+                const price = (row[5] || '').trim();
+                const tags = (row[6] || '').trim();
+                const sectionIntro = (row[7] || '').trim();
+                const sectionDisclaimer = (row[8] || '').trim();
+                
+                // Skip rows without an actual item name
+                if (!itemName) return;
+                
+                // Use meaningful defaults only if we have an item
+                const finalDayPart = dayPart || 'General';
+                const finalSection = section || 'Items';
+                
+                // Create day part key like "daypart1", "daypart2", etc.
+                if (!dayPartMap[finalDayPart]) {
+                    dayPartMap[finalDayPart] = `daypart${dayPartCounter}`;
+                    dayPartCounter++;
+                }
+                const dayPartKey = dayPartMap[finalDayPart];
+                
+                // Initialize category if needed
+                if (!categories[dayPartKey]) {
+                    categories[dayPartKey] = {
+                        name: finalDayPart,
+                        sections: {}
+                    };
+                }
+                
+                // Check if this section already exists (by comparing section names)
+                let existingSectionKey = null;
+                for (const [key, sec] of Object.entries(categories[dayPartKey].sections)) {
+                    if (sec.name === finalSection) {
+                        existingSectionKey = key;
+                        break;
+                    }
+                }
+                
+                // Create section key - use numbered format
+                const sectionCounter = Object.keys(categories[dayPartKey].sections).length + 1;
+                const sectionKey = existingSectionKey || `section${sectionCounter}`;
+                
+                // Initialize section if needed - MUST set name and description FIRST
+                if (!categories[dayPartKey].sections[sectionKey]) {
+                    categories[dayPartKey].sections[sectionKey] = {
+                        name: finalSection,
+                        description: sectionIntro || '',
+                        items: {}  // items comes AFTER name and description
+                    };
+                }
+                
+                // Create item with global numbered key (item1, item2, item3... across all sections)
+                const itemKey = `item${globalItemCounter}`;
+                globalItemCounter++;
+                
+                const item = {
+                    name: itemName,
+                    description: description,
+                    price: formatPrice(price)  // KEEP AS STRING with $
+                };
+                
+                // Only add allergy if present
+                if (tags) {
+                    item.allergy = tags.split(',').map(t => t.trim()).filter(t => t).join(', ');
+                }
+                
+                categories[dayPartKey].sections[sectionKey].items[itemKey] = item;
+            });
+            
+            return categories;
+        }
+        // ========================================================================
+        
+        async function saveToFirebase(data, status) {
+            const statusText = document.getElementById('save-status-text');
+            statusText.textContent = 'Saving...';
+            
+            console.log('🔵 saveToFirebase called with status:', status);
+            console.log('🔵 Form data:', data);
+            
+            try {
+                // Check if functions are available
+                console.log('🔍 Checking if generateMenuId exists:', typeof generateMenuId);
+                console.log('🔍 Checking if saveMenuToStaging exists:', typeof saveMenuToStaging);
+                
+                if (typeof generateMenuId !== 'function') {
+                    throw new Error('generateMenuId function not found! Make sure firebase-config.js loaded correctly.');
+                }
+                
+                if (typeof saveMenuToStaging !== 'function') {
+                    throw new Error('saveMenuToStaging function not found! Make sure firebase-config.js loaded correctly.');
+                }
+                
+                // Generate unique menu ID if this is a new menu
+                console.log('🔵 Generating menu ID...');
+                const menuId = generateMenuId();
+                console.log('✅ Generated menu ID:', menuId);
+                
+                // ========================================================================
+                // HANDLE MENU DATA: CSV or Manual Categories
+                // ========================================================================
+                let menuJson = {};
+                
+                // Check if CSV file was uploaded
+                const csvInput = document.getElementById('csv-upload');
+                const hasCsvFile = csvInput && csvInput.files && csvInput.files.length > 0;
+                
+                if (hasCsvFile) {
+                    console.log('📄 CSV file detected, processing...');
+                    // Read and parse CSV file
+                    const csvFile = csvInput.files[0];
+                    const csvText = await csvFile.text();
+                    menuJson = await parseCSVToMenu(csvText);
+                    console.log('✅ CSV parsed to menu structure:', menuJson);
+                } else if (data.categories && data.categories.length > 0) {
+                    console.log('📝 Manual categories detected, converting...');
+                    // Helper functions
+                    function cleanKey(text) {
+                        return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                    }
+                    
+                    function parsePrice(priceStr) {
+                        if (!priceStr) return 0;
+                        const cleaned = priceStr.replace(/[$,]/g, '').trim();
+                        return parseFloat(cleaned) || 0;
+                    }
+                    
+                    // Build menu structure from manual categories
+                    let categoryOrder = 1;
+                    data.categories.forEach(category => {
+                        const catKey = cleanKey(category.name);
+                        
+                        menuJson[catKey] = {
+                            name: category.name,
+                            order: categoryOrder++,
+                            sections: {}
+                        };
+                        
+                        const sectionKey = catKey;
+                        menuJson[catKey].sections[sectionKey] = {
+                            name: category.name,
+                            order: 1,
+                            items: {}
+                        };
+                        
+                        let itemOrder = 1;
+                        category.items.forEach(item => {
+                            const itemKey = cleanKey(item.name);
+                            
+                            menuJson[catKey].sections[sectionKey].items[itemKey] = {
+                                name: item.name,
+                                description: item.description,
+                                price: parsePrice(item.price),
+                                order: itemOrder++
+                            };
+                            
+                            if (item.calories) {
+                                menuJson[catKey].sections[sectionKey].items[itemKey].calories = item.calories;
+                            }
+                            if (item.options && item.options.length > 0) {
+                                menuJson[catKey].sections[sectionKey].items[itemKey].options = item.options;
+                            }
+                        });
+                    });
+                    console.log('✅ Manual categories converted to menu structure:', menuJson);
+                } else {
+                    console.log('⚠️  No CSV and no manual categories - saving empty menuJson');
+                    // This is OK for draft stage - menu can be added later
+                }
+                // ========================================================================
+                
+                // Prepare menu data for Firebase
+                console.log('🔵 Preparing menu data...');
+                const menuData = {
+                    restaurantName: data.basicInfo.restaurantName,
+                    address: data.basicInfo.address,
+                    city: data.basicInfo.city,
+                    state: data.basicInfo.state,
+                    latitude: data.basicInfo.latitude,
+                    longitude: data.basicInfo.longitude,
+                    phoneNumber: data.basicInfo.phoneNumber,
+                    hours: data.basicInfo.hours,
+                    averageMealPrice: data.pricing.averageMealPrice || data.pricing.priceRangeText,
+                    heroImagePath: data.pricing.heroImagePath,
+                    heroImageCaption: data.pricing.heroImageCaption,
+                    cuisineTypes: data.cuisineInfo?.cuisineTypes || [],
+                    cuisineOther: data.cuisineInfo?.cuisineOther || '',
+                    dietaryOptions: data.cuisineInfo?.dietaryOptions || [],
+                    menuJson: menuJson,  // Use properly formatted menu structure
+                    status: status === 'complete' ? 'ready-for-review' : 'draft',
+                    lastUpdated: Date.now(),
+                    assignedTo: 'Helen'  // Or get from user context
+                };
+                console.log('✅ Menu data prepared:', menuData);
+                
+                // Save to Firebase staging using firebase-config.js function
+                console.log('🔵 Calling saveMenuToStaging...');
+                await saveMenuToStaging(menuId, menuData);
+                console.log('✅ saveMenuToStaging completed successfully');
+                
+                statusText.textContent = `Saved successfully as ${status === 'complete' ? 'Ready for Review' : 'Draft'}!`;
+                console.log('✅ Menu saved to Firebase:', menuId);
+                
+                setTimeout(() => {
+                    statusText.textContent = 'Ready to edit';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('❌ Error saving menu:', error);
+                statusText.textContent = `Error saving: ${error.message}`;
+                alert(`Failed to save menu: ${error.message}`);
+            }
+        }
+        
+        function showPreview() {
+            const formData = collectFormData();
+            const previewBody = document.getElementById('preview-body');
+            
+            let html = `
+                <div style="border-bottom: 2px solid var(--primary-color); padding-bottom: var(--spacing-md); margin-bottom: var(--spacing-lg);">
+                    ${formData.pricing.heroImagePath ? `
+                        <img src="${formData.pricing.heroImagePath}" 
+                             alt="${formData.pricing.heroImageCaption || 'Restaurant hero image'}" 
+                             style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px; margin-bottom: var(--spacing-md);">
+                        ${formData.pricing.heroImageCaption ? `<p style="font-size: var(--font-size-sm); font-style: italic; color: var(--text-secondary);">Alt text: ${formData.pricing.heroImageCaption}</p>` : ''}
+                    ` : ''}
+                    <h3>${formData.basicInfo.restaurantName}</h3>
+                    <p>${formData.basicInfo.address}, ${formData.basicInfo.city}, ${formData.basicInfo.state}</p>
+                    <p>📞 ${formData.basicInfo.phoneNumber || 'No phone'}</p>
+                    <p>💰 ${formData.pricing.priceRangeText || formData.pricing.averageMealPrice}</p>
+                    ${formData.basicInfo.hours ? `<p><strong>Hours:</strong><br>${formData.basicInfo.hours.replace(/\n/g, '<br>')}</p>` : ''}
+                </div>
+            `;
+            
+            formData.categories.forEach(category => {
+                html += `
+                    <div style="margin: var(--spacing-lg) 0;">
+                        <h4 style="color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: var(--spacing-xs);">
+                            ${category.name}
+                        </h4>
+                        ${category.description ? `<p style="font-style: italic; color: var(--text-secondary);">${category.description}</p>` : ''}
+                `;
+                
+                category.items.forEach(item => {
+                    html += `
+                        <div style="margin: var(--spacing-md) 0; padding-left: var(--spacing-md);">
+                            <div style="display: flex; justify-content: space-between;">
+                                <strong>${item.name}</strong>
+                                <span style="color: var(--success-color);">${item.price}</span>
+                            </div>
+                            ${item.description ? `<p style="margin: var(--spacing-xs) 0; color: var(--text-secondary);">${item.description}</p>` : ''}
+                            ${item.calories ? `<p style="font-size: var(--font-size-sm); color: var(--text-secondary);">${item.calories} cal</p>` : ''}
+                            ${item.options.length > 0 ? `
+                                <div style="margin-left: var(--spacing-md); font-size: var(--font-size-sm); color: var(--text-secondary);">
+                                    ${item.options.map(opt => `<div>• ${opt.name} ${opt.priceModifier}</div>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            });
+            
+            previewBody.innerHTML = html;
+            document.getElementById('preview-modal').style.display = 'block';
+        }
+        
+        function closePreview() {
+            document.getElementById('preview-modal').style.display = 'none';
+        }
+        
+        function loadMenu(menuId) {
+            // TODO: Load menu from Firebase and populate form
+            console.log('Loading menu:', menuId);
+        }
+    </script>
+</body>
+</html>
