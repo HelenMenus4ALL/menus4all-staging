@@ -8,7 +8,7 @@
     
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/menu-editor.css">
-      <!-- fix with order added dec 1 at 10 30 pm -->
+     <!-- 10 51 dec 1 fix -->
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -1314,13 +1314,48 @@
         // CSV PARSING FUNCTION - MATCHES PRODUCTION MENU STRUCTURE EXACTLY
         // ========================================================================
         async function parseCSVToMenu(csvText) {
-            // Parse CSV (handle both tabs and commas)
+            // Proper CSV parser that handles quoted fields
+            function parseCSVLine(line) {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    const nextChar = line[i + 1];
+                    
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') {
+                            // Escaped quote
+                            current += '"';
+                            i++; // Skip next quote
+                        } else {
+                            // Toggle quote mode
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        // Field separator (not inside quotes)
+                        result.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                
+                // Add last field
+                result.push(current.trim());
+                return result;
+            }
+            
+            // Parse CSV (handle both tabs and commas with proper quote handling)
             const lines = csvText.split('\n').filter(l => l.trim());
             const rows = lines.map(line => {
                 if (line.includes('\t')) {
+                    // Tab-separated: simpler, just split on tabs
                     return line.split('\t').map(c => c.trim());
                 }
-                return line.split(',').map(c => c.trim());
+                // Comma-separated: use proper CSV parser for quoted fields
+                return parseCSVLine(line);
             });
             
             // Skip header if it looks like headers
@@ -1409,11 +1444,11 @@
                 const item = {
                     name: itemName,
                     description: description,
-                    price: formatPrice(price),  // KEEP AS STRING with $
-                    order: globalItemCounter  // Add order field
+                    order: globalItemCounter,  // Add order field BEFORE price
+                    price: formatPrice(price)  // KEEP AS STRING with $
                 };
                 
-                // Only add allergy if present
+                // Only add allergy if present (comes after main fields)
                 if (tags) {
                     item.allergy = tags.split(',').map(t => t.trim()).filter(t => t).join(', ');
                 }
