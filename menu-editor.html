@@ -8,9 +8,7 @@
     
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/menu-editor.css">
-    
-    <!-- version with hours fix 9:37 Dec 1-->
-    
+      <!-- fix with order added dec 1 at 10 30 pm -->
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -1376,6 +1374,7 @@
                 if (!categories[dayPartKey]) {
                     categories[dayPartKey] = {
                         name: finalDayPart,
+                        order: dayPartCounter - 1,  // Add order field (0-indexed after increment)
                         sections: {}
                     };
                 }
@@ -1398,6 +1397,7 @@
                     categories[dayPartKey].sections[sectionKey] = {
                         name: finalSection,
                         description: sectionIntro || '',
+                        order: sectionCounter,  // Add order field
                         items: {}  // items comes AFTER name and description
                     };
                 }
@@ -1409,7 +1409,8 @@
                 const item = {
                     name: itemName,
                     description: description,
-                    price: formatPrice(price)  // KEEP AS STRING with $
+                    price: formatPrice(price),  // KEEP AS STRING with $
+                    order: globalItemCounter  // Add order field
                 };
                 
                 // Only add allergy if present
