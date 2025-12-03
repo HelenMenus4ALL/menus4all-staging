@@ -1581,7 +1581,9 @@
                     menuJson: menuJson,  // Use properly formatted menu structure
                     status: status === 'complete' ? 'ready-for-review' : 'draft',
                     lastUpdated: Date.now(),
-                    assignedTo: 'Helen'  // Or get from user context
+                    assignedTo: data.metadata?.assignedTo || 'Helen',
+                    requestedBy: data.metadata?.requestedBy || '',
+                    technicalNotes: data.metadata?.technicalNotes || ''
                 };
                 console.log('✅ Menu data prepared:', menuData);
                 
@@ -1805,7 +1807,7 @@
                 // Cuisine types (checkboxes)
                 if (menuData.cuisineTypes && Array.isArray(menuData.cuisineTypes)) {
                     menuData.cuisineTypes.forEach(cuisine => {
-                        const checkbox = document.querySelector(`input[name="cuisine-types"][value="${cuisine}"]`);
+                        const checkbox = document.querySelector(`input[name="cuisineTypes"][value="${cuisine}"]`);
                         if (checkbox) {
                             checkbox.checked = true;
                         }
@@ -1814,13 +1816,13 @@
                 
                 // Other cuisine
                 if (menuData.cuisineOther) {
-                    document.getElementById('cuisine-other').value = menuData.cuisineOther;
+                    document.getElementById('cuisine-other-text').value = menuData.cuisineOther;
                 }
                 
                 // Dietary options (checkboxes)
                 if (menuData.dietaryOptions && Array.isArray(menuData.dietaryOptions)) {
                     menuData.dietaryOptions.forEach(option => {
-                        const checkbox = document.querySelector(`input[name="dietary-options"][value="${option}"]`);
+                        const checkbox = document.querySelector(`input[name="dietaryOptions"][value="${option}"]`);
                         if (checkbox) {
                             checkbox.checked = true;
                         }
@@ -1834,6 +1836,19 @@
                 // 1. Enable the manual category building section (currently commented out)
                 // 2. Add code here to populate those categories from menuJson
                 // ====================================================================
+                
+                // ====================================================================
+                // POPULATE METADATA FIELDS
+                // ====================================================================
+                if (menuData.assignedTo) {
+                    document.getElementById('assigned-to').value = menuData.assignedTo;
+                }
+                if (menuData.requestedBy) {
+                    document.getElementById('requested-by').value = menuData.requestedBy;
+                }
+                if (menuData.technicalNotes) {
+                    document.getElementById('technical-notes').value = menuData.technicalNotes;
+                }
                 
                 // ====================================================================
                 // UPDATE UI STATUS
