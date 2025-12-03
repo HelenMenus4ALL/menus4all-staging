@@ -6,6 +6,9 @@
     <meta name="description" content="Menus4ALL Menu Editor - Create and edit accessible restaurant menus">
     <title>Menu Editor - Menus4ALL</title>
     
+    <!-- VERSION: v3.1-DEBUG - All bugs fixed + Debug logging -->
+    <script>console.log('🟢 Loading menu-editor-FIXED.html v3.1-DEBUG');</script>
+    
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/menu-editor.css">
     
@@ -1699,45 +1702,73 @@
                 document.getElementById('phone').value = menuData.phoneNumber || '';
                 
                 // ====================================================================
-                // POPULATE HOURS - Parse the combined hours string back to periods
+                // POPULATE HOURS - Handle both array and string formats
                 // ====================================================================
                 const hoursContainer = document.getElementById('hours-container');
                 hoursContainer.innerHTML = ''; // Clear default period
                 hoursPeriodCount = 0;
                 
+                console.log('🔍 DEBUG: menuData.hours =', menuData.hours);
+                console.log('🔍 DEBUG: typeof menuData.hours =', typeof menuData.hours);
+                console.log('🔍 DEBUG: Array.isArray(menuData.hours) =', Array.isArray(menuData.hours));
+                
                 if (menuData.hours) {
-                    // Parse hours string like:
-                    // "Monday - Friday: 11:00 AM - 10:00 PM\nSaturday - Sunday: 9:00 AM - 11:00 PM"
-                    const hoursPeriods = menuData.hours.split('\n').filter(line => line.trim());
+                    let hoursArray = [];
                     
-                    hoursPeriods.forEach(periodStr => {
-                        // Example: "Monday - Friday: 11:00 AM - 10:00 PM"
-                        const match = periodStr.match(/^([^:]+):\s*(\d{1,2}:\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}:\d{2})\s*(AM|PM)$/i);
+                    // Check if hours is an array (current format) or string (legacy format)
+                    if (Array.isArray(menuData.hours)) {
+                        console.log('✅ Hours is an array');
+                        // Current format: array of objects
+                        // [{ days: "Monday - Friday", open: "11:00 AM", close: "10:00 PM" }]
+                        hoursArray = menuData.hours;
+                    } else if (typeof menuData.hours === 'string') {
+                        console.log('✅ Hours is a string');
+                        // Legacy format: string like "Monday - Friday: 11:00 AM - 10:00 PM\n..."
+                        const hoursPeriods = menuData.hours.split('\n').filter(line => line.trim());
+                        hoursPeriods.forEach(periodStr => {
+                            const match = periodStr.match(/^([^:]+):\s*(\d{1,2}:\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}:\d{2})\s*(AM|PM)$/i);
+                            if (match) {
+                                const [, days, openTime, openAMPM, closeTime, closeAMPM] = match;
+                                hoursArray.push({
+                                    days: days.trim(),
+                                    open: `${openTime} ${openAMPM}`,
+                                    close: `${closeTime} ${closeAMPM}`
+                                });
+                            }
+                        });
+                    } else {
+                        console.log('⚠️ Hours is neither array nor string:', typeof menuData.hours);
+                    }
+                    
+                    // Now populate the form with the hours array
+                    hoursArray.forEach(period => {
+                        // Add hours period programmatically
+                        addHoursPeriod();
                         
-                        if (match) {
-                            const [, days, openTime, openAMPM, closeTime, closeAMPM] = match;
-                            
-                            // Add hours period programmatically
-                            addHoursPeriod();
-                            
-                            // Get the just-added period
-                            const periods = document.querySelectorAll('.hours-period');
-                            const periodDiv = periods[periods.length - 1];
-                            
-                            // Fill in the values
-                            periodDiv.querySelector('.days-input').value = days.trim();
-                            periodDiv.querySelector('.open-time').value = openTime.trim();
-                            periodDiv.querySelector('.close-time').value = closeTime.trim();
-                            
-                            // Set AM/PM radio buttons
+                        // Get the just-added period
+                        const periods = document.querySelectorAll('.hours-period');
+                        const periodDiv = periods[periods.length - 1];
+                        
+                        // Fill in the days
+                        periodDiv.querySelector('.days-input').value = period.days || '';
+                        
+                        // Parse open time (e.g., "11:00 AM")
+                        const openMatch = period.open.match(/(\d{1,2}:\d{2})\s*(AM|PM)/i);
+                        if (openMatch) {
+                            periodDiv.querySelector('.open-time').value = openMatch[1];
                             const openRadios = periodDiv.querySelectorAll('.open-ampm');
                             openRadios.forEach(radio => {
-                                radio.checked = radio.value === openAMPM.toUpperCase();
+                                radio.checked = radio.value === openMatch[2].toUpperCase();
                             });
-                            
+                        }
+                        
+                        // Parse close time (e.g., "10:00 PM")
+                        const closeMatch = period.close.match(/(\d{1,2}:\d{2})\s*(AM|PM)/i);
+                        if (closeMatch) {
+                            periodDiv.querySelector('.close-time').value = closeMatch[1];
                             const closeRadios = periodDiv.querySelectorAll('.close-ampm');
                             closeRadios.forEach(radio => {
-                                radio.checked = radio.value === closeAMPM.toUpperCase();
+                                radio.checked = radio.value === closeMatch[2].toUpperCase();
                             });
                         }
                     });
