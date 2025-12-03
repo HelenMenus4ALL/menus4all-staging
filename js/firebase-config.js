@@ -331,6 +331,7 @@ function generateMenuId() {
 window.saveMenuToStaging = saveMenuToStaging;
 window.generateMenuId = generateMenuId;
 window.getAllStagingMenus = getAllStagingMenus;
+window.getMenuById = getMenuById;  // ADD THIS - needed for loading menus in editor
 window.updateMenuStatus = updateMenuStatus;
 window.deleteMenuFromStaging = deleteMenuFromStaging;
 window.pushMenuToProduction = pushMenuToProduction;
