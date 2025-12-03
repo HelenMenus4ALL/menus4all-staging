@@ -1800,6 +1800,25 @@
                 document.getElementById('hero-image-path').value = menuData.heroImagePath || '';
                 document.getElementById('hero-image-caption').value = menuData.heroImageCaption || '';
                 
+                // Show preview of existing hero image if available
+                if (menuData.heroImagePath) {
+                    const heroPreview = document.getElementById('hero-image-preview');
+                    if (heroPreview) {
+                        heroPreview.innerHTML = `
+                            <div style="padding: 10px; background: #f0f0f0; border-radius: 4px; margin-top: 8px;">
+                                <strong>Current image:</strong><br>
+                                <img src="${menuData.heroImagePath}" 
+                                     alt="Current hero image" 
+                                     style="max-width: 200px; max-height: 150px; margin-top: 8px; border-radius: 4px;">
+                                <p style="font-size: 0.9em; margin-top: 4px; color: #666;">
+                                    To change the image, upload a new file above.
+                                </p>
+                            </div>
+                        `;
+                        heroPreview.hidden = false;
+                    }
+                }
+                
                 // ====================================================================
                 // POPULATE CUISINE INFO SECTION
                 // ====================================================================
@@ -1848,6 +1867,35 @@
                 }
                 if (menuData.technicalNotes) {
                     document.getElementById('technical-notes').value = menuData.technicalNotes;
+                }
+                
+                // Show CSV info message
+                if (menuData.menuJson && Object.keys(menuData.menuJson).length > 0) {
+                    const csvPreview = document.getElementById('csv-preview');
+                    if (csvPreview) {
+                        const categoryCount = Object.keys(menuData.menuJson).length;
+                        let itemCount = 0;
+                        Object.values(menuData.menuJson).forEach(cat => {
+                            if (cat.sections) {
+                                Object.values(cat.sections).forEach(section => {
+                                    if (section.items) {
+                                        itemCount += Object.keys(section.items).length;
+                                    }
+                                });
+                            }
+                        });
+                        
+                        csvPreview.innerHTML = `
+                            <div style="padding: 10px; background: #e8f5e9; border-radius: 4px; margin-top: 8px; border-left: 4px solid #4caf50;">
+                                <strong>✅ Menu Data Loaded:</strong><br>
+                                <span style="font-size: 0.9em; color: #2e7d32;">
+                                    ${categoryCount} categories, ${itemCount} items<br>
+                                    <em>To update the menu, upload a new CSV file above.</em>
+                                </span>
+                            </div>
+                        `;
+                        csvPreview.hidden = false;
+                    }
                 }
                 
                 // ====================================================================
