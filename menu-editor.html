@@ -8,8 +8,8 @@
     
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/menu-editor.css">
-     <!-- 10 51 dec 1 fix -->
-    <!-- Firebase -->
+    
+    <!-- Firebase SDKs - REQUIRED for database operations -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
@@ -749,6 +749,7 @@
         // Menu Editor JavaScript
         let categoryCounter = 0;
         let itemCounter = 0;
+        let currentMenuId = null;  // Track which menu we're editing (for updates vs creates)
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -1480,10 +1481,9 @@
                     throw new Error('saveMenuToStaging function not found! Make sure firebase-config.js loaded correctly.');
                 }
                 
-                // Generate unique menu ID if this is a new menu
-                console.log('🔵 Generating menu ID...');
-                const menuId = generateMenuId();
-                console.log('✅ Generated menu ID:', menuId);
+                // Use existing menu ID if editing, otherwise generate new one
+                const menuId = currentMenuId || generateMenuId();
+                console.log(`${currentMenuId ? '📝 Updating existing' : '✨ Creating new'} menu ID:`, menuId);
                 
                 // ========================================================================
                 // HANDLE MENU DATA: CSV or Manual Categories
@@ -1659,9 +1659,158 @@
             document.getElementById('preview-modal').style.display = 'none';
         }
         
-        function loadMenu(menuId) {
-            // TODO: Load menu from Firebase and populate form
-            console.log('Loading menu:', menuId);
+        
+        // ========================================================================
+        // LOAD EXISTING MENU FROM FIREBASE
+        // ========================================================================
+        async function loadMenu(menuId) {
+            try {
+                console.log('🔵 Loading menu:', menuId);
+                
+                // Show loading state
+                const statusText = document.getElementById('save-status');
+                if (statusText) {
+                    statusText.textContent = 'Loading menu...';
+                }
+                
+                // Get menu data from Firebase
+                const menuData = await getMenuById(menuId);
+                
+                if (!menuData) {
+                    alert('Menu not found!');
+                    console.error('❌ Menu not found:', menuId);
+                    return;
+                }
+                
+                console.log('✅ Menu loaded:', menuData);
+                
+                // Store the current menu ID so saves update instead of creating new
+                currentMenuId = menuId;
+                
+                // ====================================================================
+                // POPULATE BASIC INFO SECTION
+                // ====================================================================
+                document.getElementById('restaurant-name').value = menuData.restaurantName || '';
+                document.getElementById('address').value = menuData.address || '';
+                document.getElementById('city').value = menuData.city || '';
+                document.getElementById('state').value = menuData.state || '';
+                document.getElementById('latitude').value = menuData.latitude || '';
+                document.getElementById('longitude').value = menuData.longitude || '';
+                document.getElementById('phone-number').value = menuData.phoneNumber || '';
+                
+                // ====================================================================
+                // POPULATE HOURS - Parse the combined hours string back to periods
+                // ====================================================================
+                const hoursContainer = document.getElementById('hours-container');
+                hoursContainer.innerHTML = ''; // Clear default period
+                hoursPeriodCount = 0;
+                
+                if (menuData.hours) {
+                    // Parse hours string like:
+                    // "Monday - Friday: 11:00 AM - 10:00 PM\nSaturday - Sunday: 9:00 AM - 11:00 PM"
+                    const hoursPeriods = menuData.hours.split('\n').filter(line => line.trim());
+                    
+                    hoursPeriods.forEach(periodStr => {
+                        // Example: "Monday - Friday: 11:00 AM - 10:00 PM"
+                        const match = periodStr.match(/^([^:]+):\s*(\d{1,2}:\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}:\d{2})\s*(AM|PM)$/i);
+                        
+                        if (match) {
+                            const [, days, openTime, openAMPM, closeTime, closeAMPM] = match;
+                            
+                            // Add hours period programmatically
+                            addHoursPeriod();
+                            
+                            // Get the just-added period
+                            const periods = document.querySelectorAll('.hours-period');
+                            const periodDiv = periods[periods.length - 1];
+                            
+                            // Fill in the values
+                            periodDiv.querySelector('.days-input').value = days.trim();
+                            periodDiv.querySelector('.open-time').value = openTime.trim();
+                            periodDiv.querySelector('.close-time').value = closeTime.trim();
+                            
+                            // Set AM/PM radio buttons
+                            const openRadios = periodDiv.querySelectorAll('.open-ampm');
+                            openRadios.forEach(radio => {
+                                radio.checked = radio.value === openAMPM.toUpperCase();
+                            });
+                            
+                            const closeRadios = periodDiv.querySelectorAll('.close-ampm');
+                            closeRadios.forEach(radio => {
+                                radio.checked = radio.value === closeAMPM.toUpperCase();
+                            });
+                        }
+                    });
+                }
+                
+                // If no hours were loaded, add at least one empty period
+                if (hoursPeriodCount === 0) {
+                    addHoursPeriod();
+                }
+                
+                // ====================================================================
+                // POPULATE PRICING SECTION
+                // ====================================================================
+                document.getElementById('average-meal-price').value = menuData.averageMealPrice || '';
+                document.getElementById('hero-image-path').value = menuData.heroImagePath || '';
+                document.getElementById('hero-image-caption').value = menuData.heroImageCaption || '';
+                
+                // ====================================================================
+                // POPULATE CUISINE INFO SECTION
+                // ====================================================================
+                
+                // Cuisine types (checkboxes)
+                if (menuData.cuisineTypes && Array.isArray(menuData.cuisineTypes)) {
+                    menuData.cuisineTypes.forEach(cuisine => {
+                        const checkbox = document.querySelector(`input[name="cuisine-types"][value="${cuisine}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+                
+                // Other cuisine
+                if (menuData.cuisineOther) {
+                    document.getElementById('cuisine-other').value = menuData.cuisineOther;
+                }
+                
+                // Dietary options (checkboxes)
+                if (menuData.dietaryOptions && Array.isArray(menuData.dietaryOptions)) {
+                    menuData.dietaryOptions.forEach(option => {
+                        const checkbox = document.querySelector(`input[name="dietary-options"][value="${option}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+                
+                // ====================================================================
+                // NOTE: Menu categories are loaded from CSV, not manually created
+                // The current form is designed for CSV upload only
+                // If you need to edit menu items, you would need to:
+                // 1. Enable the manual category building section (currently commented out)
+                // 2. Add code here to populate those categories from menuJson
+                // ====================================================================
+                
+                // ====================================================================
+                // UPDATE UI STATUS
+                // ====================================================================
+                if (statusText) {
+                    statusText.textContent = `Loaded: ${menuData.restaurantName}`;
+                    setTimeout(() => {
+                        statusText.textContent = 'Ready to edit';
+                    }, 2000);
+                }
+                
+                // Update the page title
+                document.title = `Edit ${menuData.restaurantName} - Menus4ALL`;
+                
+                console.log('✅ Menu fully loaded into form');
+                
+            } catch (error) {
+                console.error('❌ Error loading menu:', error);
+                alert(`Failed to load menu: ${error.message}`);
+            }
         }
     </script>
 </body>
