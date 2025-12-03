@@ -1696,7 +1696,7 @@
                 document.getElementById('state').value = menuData.state || '';
                 document.getElementById('latitude').value = menuData.latitude || '';
                 document.getElementById('longitude').value = menuData.longitude || '';
-                document.getElementById('phone-number').value = menuData.phoneNumber || '';
+                document.getElementById('phone').value = menuData.phoneNumber || '';
                 
                 // ====================================================================
                 // POPULATE HOURS - Parse the combined hours string back to periods
@@ -1751,7 +1751,19 @@
                 // ====================================================================
                 // POPULATE PRICING SECTION
                 // ====================================================================
-                document.getElementById('average-meal-price').value = menuData.averageMealPrice || '';
+                // Check if averageMealPrice is a radio value ($, $$, $$$, $$$$) or custom text
+                if (menuData.averageMealPrice) {
+                    const radioValues = ['$', '$$', '$$$', '$$$$'];
+                    if (radioValues.includes(menuData.averageMealPrice)) {
+                        // It's a radio button value
+                        const radio = document.querySelector(`input[name="averageMealPrice"][value="${menuData.averageMealPrice}"]`);
+                        if (radio) radio.checked = true;
+                    } else {
+                        // It's custom text - put in the text field
+                        document.getElementById('price-range-text').value = menuData.averageMealPrice;
+                    }
+                }
+                
                 document.getElementById('hero-image-path').value = menuData.heroImagePath || '';
                 document.getElementById('hero-image-caption').value = menuData.heroImageCaption || '';
                 
