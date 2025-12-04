@@ -6,8 +6,8 @@
     <meta name="description" content="Menus4ALL Menu Editor - Create and edit accessible restaurant menus">
     <title>Menu Editor - Menus4ALL</title>
     
-    <!-- VERSION: v3.1-DEBUG - All bugs fixed + Debug logging -->
-    <script>console.log('🟢 Loading menu-editor-FIXED.html v3.1-DEBUG');</script>
+    <!-- VERSION: v3.2-PASTE - Changed to paste CSV data instead of file upload -->
+    <script>console.log('🟢 Loading menu-editor-PASTE v3.2 - Paste CSV workflow for Mac Numbers');</script>
     
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/menu-editor.css">
@@ -641,13 +641,17 @@
                 <h2>File Uploads & Metadata</h2>
                 
                 <div class="form-group">
-                    <label for="csv-upload">CSV File Upload</label>
-                    <input type="file" 
-                           id="csv-upload" 
-                           name="csvFile" 
-                           accept=".csv"
-                           aria-describedby="csv-help">
-                    <span id="csv-help" class="help-text">Upload the menu CSV file - JSON will be auto-generated from this</span>
+                    <label for="csv-paste">Menu Data (Paste from Numbers/Excel)</label>
+                    <textarea id="csv-paste" 
+                              name="csvData" 
+                              rows="12"
+                              style="font-family: 'Courier New', monospace; font-size: 0.9em; width: 100%; padding: 12px;"
+                              aria-describedby="csv-help"
+                              placeholder="Paste your menu data here including headers...
+Example:
+Restaurant Name,Day Part,Menu Section,Item,Description,Price,Dietary Tags,Section Intro,Section Disclaimer
+Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vegan|Gluten-free,,"></textarea>
+                    <span id="csv-help" class="help-text">Copy and paste menu data from Numbers or Excel - include all columns with headers. JSON will be auto-generated from this.</span>
                     <div id="csv-preview" class="file-preview" hidden></div>
                 </div>
                 
@@ -1172,13 +1176,13 @@
                 errors.push('Price Range is required - enter specific pricing from menu/Google OR select an approximate range');
             }
             
-            // Check categories and items (allow if CSV is uploaded)
-            const csvFile = document.getElementById('csv-upload');
-            const hasCSV = csvFile && csvFile.files && csvFile.files.length > 0;
+            // Check categories and items (allow if CSV is pasted)
+            const csvPaste = document.getElementById('csv-paste');
+            const hasCSV = csvPaste && csvPaste.value.trim().length > 0;
             const categories = document.querySelectorAll('.category-block');
             
             if (categories.length === 0 && !hasCSV) {
-                errors.push('At least one menu category is required OR upload a CSV file');
+                errors.push('At least one menu category is required OR paste CSV data');
             } else if (categories.length > 0) {
                 categories.forEach((cat, index) => {
                     const catName = cat.querySelector('.category-name').value.trim();
@@ -1493,15 +1497,14 @@
                 // ========================================================================
                 let menuJson = {};
                 
-                // Check if CSV file was uploaded
-                const csvInput = document.getElementById('csv-upload');
-                const hasCsvFile = csvInput && csvInput.files && csvInput.files.length > 0;
+                // Check if CSV data was pasted
+                const csvPaste = document.getElementById('csv-paste');
+                const hasCsvData = csvPaste && csvPaste.value.trim().length > 0;
                 
-                if (hasCsvFile) {
-                    console.log('📄 CSV file detected, processing...');
-                    // Read and parse CSV file
-                    const csvFile = csvInput.files[0];
-                    const csvText = await csvFile.text();
+                if (hasCsvData) {
+                    console.log('📄 CSV data detected, processing...');
+                    // Parse pasted CSV text
+                    const csvText = csvPaste.value.trim();
                     menuJson = await parseCSVToMenu(csvText);
                     console.log('✅ CSV parsed to menu structure:', menuJson);
                 } else if (data.categories && data.categories.length > 0) {
