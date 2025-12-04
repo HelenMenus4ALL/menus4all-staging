@@ -1562,9 +1562,11 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                 }
                 // ========================================================================
                 
-                // Prepare menu data for Firebase in CORRECT structure for production
+                // Prepare menu data - SEPARATE structures for staging vs production
                 console.log('🔵 Preparing menu data...');
-                const menuData = {
+                
+                // PRODUCTION DATA: Only what menu.html needs
+                const productionData = {
                     restaurantInfo: {
                         name: data.basicInfo.restaurantName,
                         address: data.basicInfo.address,
@@ -1587,8 +1589,13 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                         hours: data.basicInfo.hours,
                         lastUpdated: new Date().toISOString()
                     },
-                    menu: menuJson,  // Use properly formatted menu structure
-                    // Additional fields for dashboard tracking (not needed by production menu.html but used by dashboard)
+                    menu: menuJson
+                };
+                
+                // STAGING DATA: Everything including dashboard metadata
+                const stagingData = {
+                    ...productionData, // Include production data
+                    // Add dashboard tracking fields
                     status: status === 'complete' ? 'ready-for-review' : 'draft',
                     lastUpdated: Date.now(),
                     nextUpdateDue: Date.now() + (90 * 24 * 60 * 60 * 1000), // 90 days from now
@@ -1596,29 +1603,29 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                     requestedBy: data.metadata?.requestedBy || '',
                     technicalNotes: data.metadata?.technicalNotes || ''
                 };
-                console.log('✅ Menu data prepared:', menuData);
+                
+                console.log('✅ Production data prepared (clean):', productionData);
+                console.log('✅ Staging data prepared (with metadata):', stagingData);
                 
                 // Save to Firebase staging using firebase-config.js function
                 console.log('🔵 Saving to BOTH staging and production...');
                 
-                // SAVE 1: Try to save to STAGING database (for dashboard tracking)
-                // Skip if permission denied (when running locally)
+                // SAVE 1: Try to save to STAGING database with FULL metadata
                 console.log('📤 Step 1: Attempting to save to staging database...');
                 try {
                     if (typeof stagingDb !== 'undefined' && stagingDb) {
-                        await stagingDb.child(`staging-menus/${menuId}`).set(menuData);
-                        console.log('✅ Saved to staging database: staging-menus/' + menuId);
+                        await stagingDb.child(`staging-menus/${menuId}`).set(stagingData);
+                        console.log('✅ Saved to staging database with metadata: staging-menus/' + menuId);
                     } else {
                         console.log('⚠️ Staging database not available, skipping...');
                     }
                 } catch (err) {
                     console.warn('⚠️ Could not save to staging (possibly running locally):', err.message);
                     console.log('⏭️ Continuing with production save...');
-                    // Don't throw error - continue with production save
                 }
                 
-                // SAVE 2: Save to PRODUCTION database at ROOT (Netlify handles URL routing)
-                console.log('📤 Step 2: Saving to production root...');
+                // SAVE 2: Save CLEAN data to PRODUCTION (only menu + restaurantInfo)
+                console.log('📤 Step 2: Saving clean data to production root...');
                 const PRODUCTION_FIREBASE_URL = 'https://menus4allbeta-default-rtdb.firebaseio.com';
                 const saveUrl = `${PRODUCTION_FIREBASE_URL}/${menuId}.json`;
                 
@@ -1629,7 +1636,7 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(menuData)
+                    body: JSON.stringify(productionData) // Use CLEAN production data
                 });
                 
                 if (!response.ok) {
