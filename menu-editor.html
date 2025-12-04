@@ -6,8 +6,8 @@
     <meta name="description" content="Menus4ALL Menu Editor - Create and edit accessible restaurant menus">
     <title>Menu Editor - Menus4ALL</title>
     
-    <!-- VERSION: v3.2-PASTE - Changed to paste CSV data instead of file upload -->
-    <script>console.log('🟢 Loading menu-editor-PASTE v3.2 - Paste CSV workflow for Mac Numbers');</script>
+    <!-- VERSION: v3.3-DIRECT-PRODUCTION - Paste CSV + saves directly to production root (like stable system) -->
+    <script>console.log('🟢 Loading menu-editor v3.3 - Direct to Production (bypasses staging)');</script>
     
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/menu-editor.css">
@@ -1476,20 +1476,14 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
             console.log('🔵 Form data:', data);
             
             try {
-                // Check if functions are available
-                console.log('🔍 Checking if generateMenuId exists:', typeof generateMenuId);
-                console.log('🔍 Checking if saveMenuToStaging exists:', typeof saveMenuToStaging);
+                // Generate menu ID from restaurant name (same logic as stable system)
+                console.log('🔍 Generating menu ID from restaurant name...');
                 
-                if (typeof generateMenuId !== 'function') {
-                    throw new Error('generateMenuId function not found! Make sure firebase-config.js loaded correctly.');
-                }
+                const restaurantName = data.restaurantName;
+                const menuId = currentMenuId || restaurantName.toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '');
                 
-                if (typeof saveMenuToStaging !== 'function') {
-                    throw new Error('saveMenuToStaging function not found! Make sure firebase-config.js loaded correctly.');
-                }
-                
-                // Use existing menu ID if editing, otherwise generate new one
-                const menuId = currentMenuId || generateMenuId();
                 console.log(`${currentMenuId ? '📝 Updating existing' : '✨ Creating new'} menu ID:`, menuId);
                 
                 // ========================================================================
@@ -1591,9 +1585,28 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                 console.log('✅ Menu data prepared:', menuData);
                 
                 // Save to Firebase staging using firebase-config.js function
-                console.log('🔵 Calling saveMenuToStaging...');
-                await saveMenuToStaging(menuId, menuData);
-                console.log('✅ saveMenuToStaging completed successfully');
+                console.log('🔵 Saving to production Firebase (bypassing staging)...');
+                
+                // Use production Firebase URL and save to root (like stable system)
+                const PRODUCTION_FIREBASE_URL = 'https://menus4allbeta-default-rtdb.firebaseio.com';
+                const saveUrl = `${PRODUCTION_FIREBASE_URL}/${menuId}.json`;
+                
+                console.log('📤 Saving to:', saveUrl);
+                
+                const response = await fetch(saveUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(menuData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Firebase save failed: ${response.status} ${response.statusText}`);
+                }
+                
+                console.log('✅ Menu saved directly to production Firebase at root level');
+                console.log('✅ Menu saved successfully');
                 
                 statusText.textContent = `Saved successfully as ${status === 'complete' ? 'Ready for Review' : 'Draft'}!`;
                 console.log('✅ Menu saved to Firebase:', menuId);
