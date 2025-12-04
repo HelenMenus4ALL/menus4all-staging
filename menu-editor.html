@@ -6,8 +6,8 @@
     <meta name="description" content="Menus4ALL Menu Editor - Create and edit accessible restaurant menus">
     <title>Menu Editor - Menus4ALL</title>
     
-    <!-- VERSION: v4.0-GEOGRAPHIC - Paste CSV + Geographic paths + Dashboard tracking + 90-day updates -->
-    <script>console.log('🟢 Loading menu-editor v4.0 - Geographic Path Structure (PRODUCTION READY)');</script>
+    <!-- VERSION: v5.0-FINAL - Complete production-ready menu editor with correct data structure -->
+    <script>console.log('🟢 Loading menu-editor v5.0-FINAL - Production Ready!');</script>
     
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/menu-editor.css">
@@ -1562,24 +1562,33 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                 }
                 // ========================================================================
                 
-                // Prepare menu data for Firebase
+                // Prepare menu data for Firebase in CORRECT structure for production
                 console.log('🔵 Preparing menu data...');
                 const menuData = {
-                    restaurantName: data.basicInfo.restaurantName,
-                    address: data.basicInfo.address,
-                    city: data.basicInfo.city,
-                    state: data.basicInfo.state,
-                    latitude: data.basicInfo.latitude,
-                    longitude: data.basicInfo.longitude,
-                    phoneNumber: data.basicInfo.phoneNumber,
-                    hours: data.basicInfo.hours,
-                    averageMealPrice: data.pricing.averageMealPrice || data.pricing.priceRangeText,
-                    heroImagePath: data.pricing.heroImagePath,
-                    heroImageCaption: data.pricing.heroImageCaption,
-                    cuisineTypes: data.cuisineInfo?.cuisineTypes || [],
-                    cuisineOther: data.cuisineInfo?.cuisineOther || '',
-                    dietaryOptions: data.cuisineInfo?.dietaryOptions || [],
-                    menuJson: menuJson,  // Use properly formatted menu structure
+                    restaurantInfo: {
+                        name: data.basicInfo.restaurantName,
+                        address: data.basicInfo.address,
+                        city: data.basicInfo.city,
+                        state: data.basicInfo.state,
+                        stateCode: data.basicInfo.state,
+                        slug: menuId,
+                        lat: data.basicInfo.latitude || null,
+                        lng: data.basicInfo.longitude || null,
+                        googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.basicInfo.address)}`,
+                        phone: data.basicInfo.phoneNumber,
+                        cuisineType: data.cuisineInfo?.cuisineTypes?.join(', ') || '',
+                        dietary: data.cuisineInfo?.dietaryOptions || [],
+                        disclaimer: '',
+                        averageMealPrice: data.pricing.averageMealPrice || data.pricing.priceRangeText,
+                        heroImage: data.pricing.heroImagePath || '',
+                        heroImageAlt: data.pricing.heroImageCaption || '',
+                        menuIntro: '',
+                        requesterName: data.metadata?.requestedBy || '',
+                        hours: data.basicInfo.hours,
+                        lastUpdated: new Date().toISOString()
+                    },
+                    menu: menuJson,  // Use properly formatted menu structure
+                    // Additional fields for dashboard tracking (not needed by production menu.html but used by dashboard)
                     status: status === 'complete' ? 'ready-for-review' : 'draft',
                     lastUpdated: Date.now(),
                     nextUpdateDue: Date.now() + (90 * 24 * 60 * 60 * 1000), // 90 days from now
@@ -1602,22 +1611,12 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                     throw new Error('Failed to save to staging database: ' + err.message);
                 }
                 
-                // SAVE 2: Save to PRODUCTION database with GEOGRAPHIC PATH (like Mary O's)
-                console.log('📤 Step 2: Saving to production with geographic path...');
-                
-                // Build geographic path: /usa/{state}/{city}/{restaurant-slug}
-                const state = (data.basicInfo.state || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                const city = (data.basicInfo.city || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                
-                if (!state || !city) {
-                    throw new Error('State and City are required for production menu path');
-                }
-                
+                // SAVE 2: Save to PRODUCTION database at ROOT (Netlify handles URL routing)
+                console.log('📤 Step 2: Saving to production root...');
                 const PRODUCTION_FIREBASE_URL = 'https://menus4allbeta-default-rtdb.firebaseio.com';
-                const geographicPath = `usa/${state}/${city}/${menuId}`;
-                const saveUrl = `${PRODUCTION_FIREBASE_URL}/${geographicPath}.json`;
+                const saveUrl = `${PRODUCTION_FIREBASE_URL}/${menuId}.json`;
                 
-                console.log('📍 Geographic path:', geographicPath);
+                console.log('📍 Saving to:', saveUrl);
                 
                 const response = await fetch(saveUrl, {
                     method: 'PUT',
@@ -1631,15 +1630,19 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                     throw new Error(`Production save failed: ${response.status} ${response.statusText}`);
                 }
                 
-                console.log('✅ Saved to production: /' + geographicPath);
-                console.log('✅ Menu URL: https://www.menus4all.com/' + geographicPath.replace(/usa\//,''));
+                // Build the live URL (using geographic format for SEO)
+                const state = (data.basicInfo.state || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                const city = (data.basicInfo.city || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                const liveUrl = `https://www.menus4all.com/${state}/${city}/${menuId}`;
+                
+                console.log('✅ Saved to production: /' + menuId);
+                console.log('✅ Live URL:', liveUrl);
                 console.log('✅ Menu saved to BOTH locations successfully');
                 
                 statusText.textContent = `Saved successfully as ${status === 'complete' ? 'Ready for Review' : 'Draft'}!`;
                 
                 // Show the live URL to the user
                 setTimeout(() => {
-                    const liveUrl = `https://www.menus4all.com/${geographicPath.replace(/usa\//,'')}`;
                     statusText.innerHTML = `✅ Saved! Live at: <a href="${liveUrl}" target="_blank" style="color: #884b05;">${liveUrl}</a>`;
                 }, 1000);
                 console.log('✅ Menu saved to Firebase:', menuId);
