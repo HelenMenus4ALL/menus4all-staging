@@ -6,8 +6,8 @@
     <meta name="description" content="Menus4ALL Menu Editor - Create and edit accessible restaurant menus">
     <title>Menu Editor - Menus4ALL</title>
     
-    <!-- VERSION: v3.5-COMPLETE - Paste CSV + Dual Save + 90-day tracking + Edit support -->
-    <script>console.log('🟢 Loading menu-editor v3.5 - Full dashboard integration');</script>
+    <!-- VERSION: v4.0-GEOGRAPHIC - Paste CSV + Geographic paths + Dashboard tracking + 90-day updates -->
+    <script>console.log('🟢 Loading menu-editor v4.0 - Geographic Path Structure (PRODUCTION READY)');</script>
     
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/menu-editor.css">
@@ -1602,10 +1602,22 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                     throw new Error('Failed to save to staging database: ' + err.message);
                 }
                 
-                // SAVE 2: Save to PRODUCTION database root (for menu.html to find)
-                console.log('📤 Step 2: Saving to production root...');
+                // SAVE 2: Save to PRODUCTION database with GEOGRAPHIC PATH (like Mary O's)
+                console.log('📤 Step 2: Saving to production with geographic path...');
+                
+                // Build geographic path: /usa/{state}/{city}/{restaurant-slug}
+                const state = (data.basicInfo.state || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                const city = (data.basicInfo.city || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                
+                if (!state || !city) {
+                    throw new Error('State and City are required for production menu path');
+                }
+                
                 const PRODUCTION_FIREBASE_URL = 'https://menus4allbeta-default-rtdb.firebaseio.com';
-                const saveUrl = `${PRODUCTION_FIREBASE_URL}/${menuId}.json`;
+                const geographicPath = `usa/${state}/${city}/${menuId}`;
+                const saveUrl = `${PRODUCTION_FIREBASE_URL}/${geographicPath}.json`;
+                
+                console.log('📍 Geographic path:', geographicPath);
                 
                 const response = await fetch(saveUrl, {
                     method: 'PUT',
@@ -1619,10 +1631,17 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                     throw new Error(`Production save failed: ${response.status} ${response.statusText}`);
                 }
                 
-                console.log('✅ Saved to production root: /' + menuId);
+                console.log('✅ Saved to production: /' + geographicPath);
+                console.log('✅ Menu URL: https://www.menus4all.com/' + geographicPath.replace(/usa\//,''));
                 console.log('✅ Menu saved to BOTH locations successfully');
                 
                 statusText.textContent = `Saved successfully as ${status === 'complete' ? 'Ready for Review' : 'Draft'}!`;
+                
+                // Show the live URL to the user
+                setTimeout(() => {
+                    const liveUrl = `https://www.menus4all.com/${geographicPath.replace(/usa\//,'')}`;
+                    statusText.innerHTML = `✅ Saved! Live at: <a href="${liveUrl}" target="_blank" style="color: #884b05;">${liveUrl}</a>`;
+                }, 1000);
                 console.log('✅ Menu saved to Firebase:', menuId);
                 
                 setTimeout(() => {
