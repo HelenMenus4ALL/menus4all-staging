@@ -6,8 +6,8 @@
     <meta name="description" content="Menus4ALL Menu Editor - Create and edit accessible restaurant menus">
     <title>Menu Editor - Menus4ALL</title>
     
-    <!-- VERSION: v3.3-DIRECT-PRODUCTION - Paste CSV + saves directly to production root (like stable system) -->
-    <script>console.log('🟢 Loading menu-editor v3.3 - Direct to Production (bypasses staging)');</script>
+    <!-- VERSION: v3.5-COMPLETE - Paste CSV + Dual Save + 90-day tracking + Edit support -->
+    <script>console.log('🟢 Loading menu-editor v3.5 - Full dashboard integration');</script>
     
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/menu-editor.css">
@@ -1578,6 +1578,7 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                     menuJson: menuJson,  // Use properly formatted menu structure
                     status: status === 'complete' ? 'ready-for-review' : 'draft',
                     lastUpdated: Date.now(),
+                    nextUpdateDue: Date.now() + (90 * 24 * 60 * 60 * 1000), // 90 days from now
                     assignedTo: data.metadata?.assignedTo || 'Helen',
                     requestedBy: data.metadata?.requestedBy || '',
                     technicalNotes: data.metadata?.technicalNotes || ''
@@ -1585,13 +1586,22 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                 console.log('✅ Menu data prepared:', menuData);
                 
                 // Save to Firebase staging using firebase-config.js function
-                console.log('🔵 Saving to production Firebase (bypassing staging)...');
+                console.log('🔵 Saving to BOTH staging and production...');
                 
-                // Use production Firebase URL and save to root (like stable system)
+                // SAVE 1: Save to STAGING database (for dashboard tracking)
+                console.log('📤 Step 1: Saving to staging database...');
+                try {
+                    await stagingDb.child(`staging-menus/${menuId}`).set(menuData);
+                    console.log('✅ Saved to staging database: staging-menus/' + menuId);
+                } catch (err) {
+                    console.error('⚠️ Failed to save to staging:', err);
+                    throw new Error('Failed to save to staging database: ' + err.message);
+                }
+                
+                // SAVE 2: Save to PRODUCTION database root (for menu.html to find)
+                console.log('📤 Step 2: Saving to production root...');
                 const PRODUCTION_FIREBASE_URL = 'https://menus4allbeta-default-rtdb.firebaseio.com';
                 const saveUrl = `${PRODUCTION_FIREBASE_URL}/${menuId}.json`;
-                
-                console.log('📤 Saving to:', saveUrl);
                 
                 const response = await fetch(saveUrl, {
                     method: 'PUT',
@@ -1602,11 +1612,11 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`Firebase save failed: ${response.status} ${response.statusText}`);
+                    throw new Error(`Production save failed: ${response.status} ${response.statusText}`);
                 }
                 
-                console.log('✅ Menu saved directly to production Firebase at root level');
-                console.log('✅ Menu saved successfully');
+                console.log('✅ Saved to production root: /' + menuId);
+                console.log('✅ Menu saved to BOTH locations successfully');
                 
                 statusText.textContent = `Saved successfully as ${status === 'complete' ? 'Ready for Review' : 'Draft'}!`;
                 console.log('✅ Menu saved to Firebase:', menuId);
