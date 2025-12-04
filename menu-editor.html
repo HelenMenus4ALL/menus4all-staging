@@ -1601,14 +1601,20 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                 // Save to Firebase staging using firebase-config.js function
                 console.log('🔵 Saving to BOTH staging and production...');
                 
-                // SAVE 1: Save to STAGING database (for dashboard tracking)
-                console.log('📤 Step 1: Saving to staging database...');
+                // SAVE 1: Try to save to STAGING database (for dashboard tracking)
+                // Skip if permission denied (when running locally)
+                console.log('📤 Step 1: Attempting to save to staging database...');
                 try {
-                    await stagingDb.child(`staging-menus/${menuId}`).set(menuData);
-                    console.log('✅ Saved to staging database: staging-menus/' + menuId);
+                    if (typeof stagingDb !== 'undefined' && stagingDb) {
+                        await stagingDb.child(`staging-menus/${menuId}`).set(menuData);
+                        console.log('✅ Saved to staging database: staging-menus/' + menuId);
+                    } else {
+                        console.log('⚠️ Staging database not available, skipping...');
+                    }
                 } catch (err) {
-                    console.error('⚠️ Failed to save to staging:', err);
-                    throw new Error('Failed to save to staging database: ' + err.message);
+                    console.warn('⚠️ Could not save to staging (possibly running locally):', err.message);
+                    console.log('⏭️ Continuing with production save...');
+                    // Don't throw error - continue with production save
                 }
                 
                 // SAVE 2: Save to PRODUCTION database at ROOT (Netlify handles URL routing)
@@ -1637,9 +1643,9 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                 
                 console.log('✅ Saved to production: /' + menuId);
                 console.log('✅ Live URL:', liveUrl);
-                console.log('✅ Menu saved to BOTH locations successfully');
+                console.log('✅ Menu saved successfully!');
                 
-                statusText.textContent = `Saved successfully as ${status === 'complete' ? 'Ready for Review' : 'Draft'}!`;
+                statusText.textContent = `Saved successfully to production!`;
                 
                 // Show the live URL to the user
                 setTimeout(() => {
