@@ -1479,7 +1479,11 @@ Blue Moon Bistro,Breakfast,Appetizers,Fruit Bowl,Fresh seasonal fruits,8.99,Vega
                 // Generate menu ID from restaurant name (same logic as stable system)
                 console.log('🔍 Generating menu ID from restaurant name...');
                 
-                const restaurantName = data.restaurantName;
+                const restaurantName = data.basicInfo?.restaurantName || data.restaurantName;
+                if (!restaurantName) {
+                    throw new Error('Restaurant name is required to generate menu ID');
+                }
+                
                 const menuId = currentMenuId || restaurantName.toLowerCase()
                     .replace(/[^a-z0-9]+/g, '-')
                     .replace(/^-|-$/g, '');
