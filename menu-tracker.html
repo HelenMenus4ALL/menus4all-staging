@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Tracker - Add Dashboard Tracking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .workflow {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .workflow h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .workflow ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .menu-list {
+            margin-top: 30px;
+        }
+        
+        .menu-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .menu-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        
+        .menu-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .menu-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .tracking-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        
+        .form-group input,
+        .form-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge.tracked {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge.untracked {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge.overdue {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .actions {
+            margin-top: 15px;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗂️ Menu Tracker</h1>
+        <p class="subtitle">Add dashboard tracking to your production menus</p>
+        
+        <div class="workflow">
+            <h3>📋 Your Workflow</h3>
+            <ol>
+                <li><strong>Step 1:</strong> Use menu-converter-simple.html to paste CSV and generate JSON</li>
+                <li><strong>Step 2:</strong> Use menu-updater.html to upload JSON to production Firebase</li>
+                <li><strong>Step 3:</strong> Use this tool to add dashboard tracking (90-day alerts, status, etc.)</li>
+            </ol>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div>
+            <button class="btn" onclick="scanProductionMenus()">🔍 Scan Production Menus</button>
+            <button class="btn" onclick="bulkTrackAll()" id="bulkTrackBtn" disabled>➕ Track All Untracked Menus</button>
+        </div>
+        
+        <div id="stats" style="display: none;" class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total Menus</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="trackedCount">0</div>
+                <div class="stat-label">Tracked</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="untrackedCount">0</div>
+                <div class="stat-label">Untracked</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="overdueCount">0</div>
+                <div class="stat-label">Updates Due</div>
+            </div>
+        </div>
+        
+        <div id="menuList" class="menu-list"></div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.x/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x/firebase-database-compat.js"></script>
+    
+    <script>
+        // Firebase configuration for STAGING database (dashboard tracking)
+        const stagingConfig = {
+            apiKey: "AIzaSyCcMxsVU63wWzIYWmzk0PJ4DyWXWuUbfZY",
+            authDomain: "menus4all-staging.firebaseapp.com",
+            databaseURL: "https://menus4all-staging-default-rtdb.firebaseio.com",
+            projectId: "menus4all-staging",
+            storageBucket: "menus4all-staging.firebasestorage.app"
+        };
+        
+        // Initialize Firebase for staging
+        const stagingApp = firebase.initializeApp(stagingConfig, "staging");
+        const stagingDb = stagingApp.database().ref();
+        
+        // Production Firebase URL (read-only access)
+        const PRODUCTION_FIREBASE_URL = 'https://menus4allbeta-default-rtdb.firebaseio.com';
+        
+        let allMenus = [];
+        let trackedMenus = {};
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        async function scanProductionMenus() {
+            showStatus('🔍 Scanning production menus...', 'loading');
+            
+            try {
+                // Fetch all menus from production
+                const response = await fetch(`${PRODUCTION_FIREBASE_URL}/.json`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch production menus');
+                }
+                
+                const data = await response.json();
+                
+                // Filter out non-menu entries (config, staging-menus, etc.)
+                allMenus = Object.keys(data)
+                    .filter(key => {
+                        const menu = data[key];
+                        // Must have restaurantInfo and menu to be a valid menu
+                        return menu && menu.restaurantInfo && menu.menu;
+                    })
+                    .map(key => ({
+                        slug: key,
+                        name: data[key].restaurantInfo?.name || key,
+                        city: data[key].restaurantInfo?.city || 'Unknown',
+                        state: data[key].restaurantInfo?.state || 'Unknown',
+                        data: data[key]
+                    }));
+                
+                // Fetch tracking data from staging
+                const trackingSnapshot = await stagingDb.child('staging-menus').once('value');
+                trackedMenus = trackingSnapshot.val() || {};
+                
+                // Calculate stats
+                const totalCount = allMenus.length;
+                const trackedCount = allMenus.filter(m => trackedMenus[m.slug]).length;
+                const untrackedCount = totalCount - trackedCount;
+                const now = Date.now();
+                const overdueCount = Object.values(trackedMenus).filter(t => t.nextUpdateDue && t.nextUpdateDue <= now).length;
+                
+                document.getElementById('totalCount').textContent = totalCount;
+                document.getElementById('trackedCount').textContent = trackedCount;
+                document.getElementById('untrackedCount').textContent = untrackedCount;
+                document.getElementById('overdueCount').textContent = overdueCount;
+                document.getElementById('stats').style.display = 'grid';
+                
+                // Enable bulk track button if there are untracked menus
+                document.getElementById('bulkTrackBtn').disabled = untrackedCount === 0;
+                
+                displayMenus();
+                showStatus(`✅ Found ${totalCount} menus (${trackedCount} tracked, ${untrackedCount} untracked)`, 'success');
+                
+            } catch (error) {
+                console.error('Error scanning menus:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function displayMenus() {
+            const menuList = document.getElementById('menuList');
+            menuList.innerHTML = '';
+            
+            allMenus.forEach(menu => {
+                const tracking = trackedMenus[menu.slug];
+                const isTracked = !!tracking;
+                const isOverdue = tracking && tracking.nextUpdateDue && tracking.nextUpdateDue <= Date.now();
+                
+                const card = document.createElement('div');
+                card.className = 'menu-card';
+                card.id = `menu-${menu.slug}`;
+                
+                let badgeHtml = '';
+                if (isOverdue) {
+                    badgeHtml = '<span class="badge overdue">⚠️ Update Due</span>';
+                } else if (isTracked) {
+                    badgeHtml = '<span class="badge tracked">✅ Tracked</span>';
+                } else {
+                    badgeHtml = '<span class="badge untracked">⚠️ Not Tracked</span>';
+                }
+                
+                const nextUpdateDate = tracking && tracking.nextUpdateDue 
+                    ? new Date(tracking.nextUpdateDue).toLocaleDateString()
+                    : 'Not set';
+                
+                card.innerHTML = `
+                    <h3>${menu.name} ${badgeHtml}</h3>
+                    <div class="menu-info">
+                        <div><strong>Location:</strong> ${menu.city}, ${menu.state}</div>
+                        <div><strong>Slug:</strong> ${menu.slug}</div>
+                        ${isTracked ? `
+                            <div><strong>Status:</strong> ${tracking.status || 'draft'}</div>
+                            <div><strong>Next Update:</strong> ${nextUpdateDate}</div>
+                            <div><strong>Assigned To:</strong> ${tracking.assignedTo || 'Helen'}</div>
+                        ` : ''}
+                    </div>
+                    
+                    ${!isTracked ? `
+                        <div class="tracking-form" id="form-${menu.slug}">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select id="status-${menu.slug}">
+                                    <option value="draft">Draft</option>
+                                    <option value="in-progress">In Progress</option>
+                                    <option value="ready-for-review">Ready for Review</option>
+                                    <option value="complete">Complete</option>
+                                    <option value="live" selected>Live</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Assigned To</label>
+                                <input type="text" id="assigned-${menu.slug}" value="Helen">
+                            </div>
+                            <div class="form-group">
+                                <label>Requested By</label>
+                                <input type="text" id="requester-${menu.slug}" value="">
+                            </div>
+                            <div class="form-group">
+                                <label>Days Until Update Due</label>
+                                <input type="number" id="days-${menu.slug}" value="90" min="1">
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-small btn-success" onclick="trackMenu('${menu.slug}')">
+                                ➕ Add to Dashboard
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="actions">
+                            <button class="btn btn-small" onclick="updateTracking('${menu.slug}')">
+                                ✏️ Update Tracking
+                            </button>
+                            <a href="https://www.menus4all.com/${menu.state.toLowerCase().replace(/\s+/g, '-')}/${menu.city.toLowerCase().replace(/\s+/g, '-')}/${menu.slug}" 
+                               target="_blank" class="btn btn-small">
+                                🔗 View Menu
+                            </a>
+                        </div>
+                    `}
+                `;
+                
+                menuList.appendChild(card);
+            });
+        }
+        
+        async function trackMenu(slug) {
+            const menu = allMenus.find(m => m.slug === slug);
+            if (!menu) return;
+            
+            const status = document.getElementById(`status-${slug}`).value;
+            const assignedTo = document.getElementById(`assigned-${slug}`).value;
+            const requestedBy = document.getElementById(`requester-${slug}`).value;
+            const daysUntilDue = parseInt(document.getElementById(`days-${slug}`).value);
+            
+            const now = Date.now();
+            const nextUpdateDue = now + (daysUntilDue * 24 * 60 * 60 * 1000);
+            
+            const trackingData = {
+                ...menu.data, // Include all the original menu data
+                status: status,
+                assignedTo: assignedTo,
+                requestedBy: requestedBy,
+                lastUpdated: now,
+                nextUpdateDue: nextUpdateDue,
+                technicalNotes: ''
+            };
+            
+            try {
+                showStatus(`Adding ${menu.name} to dashboard...`, 'loading');
+                
+                await stagingDb.child(`staging-menus/${slug}`).set(trackingData);
+                
+                showStatus(`✅ ${menu.name} added to dashboard!`, 'success');
+                
+                // Refresh the display
+                await scanProductionMenus();
+                
+            } catch (error) {
+                console.error('Error tracking menu:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function bulkTrackAll() {
+            const untracked = allMenus.filter(m => !trackedMenus[m.slug]);
+            
+            if (untracked.length === 0) {
+                showStatus('No untracked menus to add', 'success');
+                return;
+            }
+            
+            if (!confirm(`Add ${untracked.length} menus to dashboard tracking?`)) {
+                return;
+            }
+            
+            showStatus(`Adding ${untracked.length} menus to dashboard...`, 'loading');
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (const menu of untracked) {
+                try {
+                    const now = Date.now();
+                    const nextUpdateDue = now + (90 * 24 * 60 * 60 * 1000); // 90 days
+                    
+                    const trackingData = {
+                        ...menu.data,
+                        status: 'live',
+                        assignedTo: 'Helen',
+                        requestedBy: '',
+                        lastUpdated: now,
+                        nextUpdateDue: nextUpdateDue,
+                        technicalNotes: ''
+                    };
+                    
+                    await stagingDb.child(`staging-menus/${menu.slug}`).set(trackingData);
+                    successCount++;
+                    
+                } catch (error) {
+                    console.error(`Error tracking ${menu.slug}:`, error);
+                    errorCount++;
+                }
+            }
+            
+            showStatus(`✅ Added ${successCount} menus to dashboard${errorCount > 0 ? ` (${errorCount} errors)` : ''}`, 'success');
+            
+            // Refresh
+            await scanProductionMenus();
+        }
+        
+        async function updateTracking(slug) {
+            // TODO: Create an edit interface
+            alert('Edit tracking feature coming soon! For now, use the dashboard to edit.');
+        }
+    </script>
+</body>
+</html>
